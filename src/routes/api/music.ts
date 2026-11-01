@@ -42,7 +42,7 @@ async function soundcloudId(): Promise<string> {
 }
 
 type Want = { title: string; artist: string; duration: number };
-const BAD = /\b(cover|covered|remix|nightcore|sped ?up|slowed|reverb|karaoke|instrumental|8d|mashup|bass ?boost(ed)?|tribute|parody|piano version|lofi|lo-fi|type beat|reaction)\b/i;
+const BAD = /\b(cover|covered|remix|nightcore|sped ?up|slowed|reverb|karaoke|instrumental|8d|mashup|bass ?boost(ed)?|tribute|parody|piano version|lofi|lo-fi|type beat|reaction|edit|bootleg|flip|rework|vip)\b/i;
 const norm = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[^\p{L}\p{N} ]/gu, " ").replace(/\s+/g, " ").trim();
 /** Scores how likely a candidate is the original studio recording of the wanted song. */
 function matchScore(title: string, artist: string, dur: number, w: Want) {
@@ -51,7 +51,7 @@ function matchScore(title: string, artist: string, dur: number, w: Want) {
   let s = 0;
   if (ct.includes(wt)) s += 5;
   else { const words = wt.split(" ").filter(Boolean); const hit = words.filter((x) => ct.includes(x)).length; s += words.length ? (hit / words.length) * 3 : 0; }
-  if (wa && ca && (ca.includes(wa) || ct.includes(wa) || wa.includes(ca))) s += 4;
+  if (wa && ca && (ca.includes(wa) || wa.includes(ca))) s += 4;
   else if (wa) return -100; // a different artist is never the original
   if (BAD.test(title) && !BAD.test(w.title)) s -= 8;
   if (/\blive\b/i.test(title) && !/\blive\b/i.test(w.title)) s -= 3;
@@ -80,7 +80,7 @@ async function resolveAudio(server: string, w: Want, preview: string): Promise<s
   }
   if (server === "audius") {
     const r: any = await fetch(`https://api.audius.co/v1/tracks/search?query=${encodeURIComponent(q)}&app_name=birchblock`).then((x) => x.json()).catch(() => ({}));
-    const ranked = (r.data ?? []).filter((x: any) => x?.is_streamable !== false)
+    const ranked = (r.data ?? []).filter((x: any) => x?.is_streamable !== false && x?.user?.is_verified)
       .map((x: any) => ({ x, s: matchScore(x.title ?? "", x.user?.name ?? "", x.duration ?? 0, w) }))
       .sort((a: any, b: any) => b.s - a.s);
     const t = ranked[0]?.s >= 7 ? ranked[0].x : null;
