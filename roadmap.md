@@ -1,9 +1,9 @@
 # Birchbeat import roadmap
 
 ## Current request — Nezha and Anikoto
-- [ ] Investigate missing English audio and Anikoto's supported dub access.
-- [ ] Repair animated-title eligibility and language retry/manual source controls without claiming unverified audio.
-- [ ] Run focused regression tests; real English playback remains unverified until a source supplies it.
+- [x] Netflix's official Nezha page lists English audio; Anikoto has dub entries but no documented embed API, and its real Nezha search returns Not Found.
+- [x] Include Chinese animation in dedicated dub matching (Nezha resolves to MAL 44061 / AniList 116982); add proxied Anikoto site search and Nezha's official Netflix link with subscription notice. Repair same-source Retry and preserve manually selected sources.
+- [x] 17 focused tests pass. Actual Nezha English playback inside Birch remains unverified: current sources have not supplied verifiable English audio; Netflix requires its own subscription/player.
 
 ## Current request — English source search
 - [x] Add documented VidSrc.cc/ICU movie sources and VidLink/ICU dedicated anime dub routes, using viewer-confirmed MAL/AniList titles. Movie sources do not guarantee English audio.
