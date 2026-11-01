@@ -24,7 +24,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => apply(session));
     supabase.auth.getSession().then(({ data }) => apply(data.session));
-    return () => sub.subscription.unsubscribe();
+    const onExit = () => setState(s => ({ ...s, guest: false }));
+    window.addEventListener(GUEST_KEY, onExit);
+    return () => { sub.subscription.unsubscribe(); window.removeEventListener(GUEST_KEY, onExit); };
   }, []);
   const enterGuest = () => { writeGuest(true); setState(s => ({ ...s, session: null, user: null, guest: true })); };
   const exitGuest = () => { writeGuest(false); setState(s => ({ ...s, guest: false })); };
@@ -32,3 +34,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 export const useAuth = () => useContext(AuthContext);
+
+/** Signs out of an account or leaves guest mode. */
+export async function signOutAll() {
+  writeGuest(false); window.dispatchEvent(new Event(GUEST_KEY));
+  await supabase.auth.signOut();
+}

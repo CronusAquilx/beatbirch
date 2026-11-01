@@ -1,3 +1,4 @@
+import { signOutAll } from "@/lib/auth";
 import { Link, useNavigate, useParams, useRouter, useRouterState } from "@tanstack/react-router";
 import { RoomFollower } from "@/components/RoomFollower";
 import { NowPlayingBar } from "@/components/music/NowPlayingBar";
@@ -137,7 +138,7 @@ function IconRail({ onSearch }: { onSearch: () => void }) {
       <div className="mt-auto flex flex-col items-center gap-1 border-t border-sidebar-border pt-2">
         {shows("ai") && <Link to="/memory" title="Memory" aria-label="Memory" className={railLink} activeProps={active}><Brain className="size-4" /></Link>}
         <Link to="/settings" title="Settings" aria-label="Settings" className={railLink} activeProps={active}><Settings className="size-4" /></Link>
-        <button onClick={() => supabase.auth.signOut()} title="Sign out" aria-label="Sign out" className={railLink}><LogOut className="size-4" /></button>
+        <button onClick={() => signOutAll()} title="Sign out" aria-label="Sign out" className={railLink}><LogOut className="size-4" /></button>
       </div>
     </aside>
   );
@@ -263,7 +264,7 @@ function SidebarBody({ onNavigate, onSearch }: { onNavigate: () => void; onSearc
         <AdminLink onNavigate={onNavigate} />
         <div className="flex items-center gap-2 px-3 py-2">
           <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{user?.email}</span>
-          <button onClick={() => supabase.auth.signOut()} className="text-muted-foreground hover:text-foreground" aria-label="Sign out">
+          <button onClick={() => signOutAll()} className="text-muted-foreground hover:text-foreground" aria-label="Sign out">
             <LogOut className="size-4" />
           </button>
         </div>
