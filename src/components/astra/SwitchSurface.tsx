@@ -7,6 +7,7 @@ import { DESKTOP_APPS, DesktopClock } from "./DesktopSurface";
 import { WallpaperEffects } from "./WallpaperEffects";
 import { NowPlayingBar } from "@/components/music/NowPlayingBar";
 import { RoomFollower } from "@/components/RoomFollower";
+import { WebsiteFullscreenButton } from "@/components/FullscreenButton";
 import { getAppearance, usePrefs } from "@/lib/astra/prefs";
 import { useAuth } from "@/lib/auth";
 import landscape from "@/assets/console-landscape.jpg";
@@ -17,7 +18,7 @@ export function SwitchShell({ children }: { children: ReactNode }) {
     {look.customBg && look.artwork && <img src={look.customBg} alt="" className="switch-wallpaper"/>}<WallpaperEffects/>
     <header className="switch-header"><Button asChild variant="ghost" className="switch-user"><Link to="/settings"><UserRound/><span>{guest ? "Guest" : String(user?.user_metadata?.["full_name"] ?? "Player")}</span></Link></Button><strong>BirchBlock <span>Switch</span></strong><div className="flex items-center gap-3"><DesktopClock compact/><Wifi className="size-4"/><BatteryFull className="size-5"/></div></header>
     <main className="relative min-h-0 flex-1 overflow-auto">{children}</main><NowPlayingBar/>
-    <footer className="switch-footer"><nav aria-label="Switch navigation" className="flex flex-wrap justify-center gap-3">{DESKTOP_APPS.filter(a => ["/home", "/store", "/games", "/movies", "/music", "/settings"].includes(a.to)).map(a => <Button asChild key={a.to} size="icon" variant="secondary" className="switch-system-button"><Link to={a.to} title={a.label} aria-label={a.label}><AppIcon app={a.to.slice(1)}/></Link></Button>)}</nav><div className="switch-bottom"><Button asChild variant="ghost" size="sm"><Link to="/home"><Home/>HOME</Link></Button><Button asChild variant="ghost" size="sm"><Link to="/settings"><Settings/>Settings</Link></Button></div></footer><RoomFollower/>
+    <footer className="switch-footer"><nav aria-label="Switch navigation" className="flex flex-wrap justify-center gap-3">{DESKTOP_APPS.filter(a => ["/home", "/store", "/games", "/movies", "/music", "/settings"].includes(a.to)).map(a => <Button asChild key={a.to} size="icon" variant="secondary" className="switch-system-button"><Link to={a.to} title={a.label} aria-label={a.label}><AppIcon app={a.to.slice(1)}/></Link></Button>)}</nav><div className="switch-bottom"><Button asChild variant="ghost" size="sm"><Link to="/home"><Home/>HOME</Link></Button><Button asChild variant="ghost" size="sm"><Link to="/settings"><Settings/>Settings</Link></Button></div></footer><WebsiteFullscreenButton/><RoomFollower/>
   </div>;
 }
 export function SwitchHome() {

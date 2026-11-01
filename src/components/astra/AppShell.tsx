@@ -12,6 +12,7 @@ import { SwitchShell } from "./SwitchSurface";
 import { WallpaperEffects } from "./WallpaperEffects";
 import desktopWallpaper from "@/assets/launcher-wallpaper.jpg";
 import { toast } from "sonner";
+import { WebsiteFullscreenButton } from "@/components/FullscreenButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { threadsQuery } from "@/lib/astra/data";
@@ -113,6 +114,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           {(homeSurface || launcher) && <div className="desktop-dock-area"><DesktopDock onSearch={() => setCmdOpen(true)}/></div>}
         </main>
       </div>
+      <WebsiteFullscreenButton/>
       <CommandMenu open={cmdOpen} onOpenChange={setCmdOpen} />
     </ShellCtx.Provider>
   );
