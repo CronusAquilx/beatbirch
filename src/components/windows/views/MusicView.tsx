@@ -6,8 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { MobileMenuButton } from "@/components/astra/AppShell";
 import { RoomButton } from "@/components/RoomButton";
 import { getRoom, myRoomId, setRoomState, useRoom } from "@/lib/rooms";
-import { artUrl, downloadUrl, getAudio, musicApi, musicToken, playList, setServer, usePlayer, type Track } from "@/lib/music/player";
-import { SERVERS, type Server } from "@/lib/music/sources";
+import { artUrl, downloadUrl, getAudio, musicApi, musicToken, playList, SERVERS, setServer, usePlayer, type Server, type Track } from "@/lib/music/player";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -202,9 +201,9 @@ export function MusicView() {
             <div className="min-w-0 flex-1">
               <button onClick={() => play(list, i)} className={cn("block max-w-full truncate text-left text-sm font-medium", on && "text-primary")}>{t.title}</button>
               <div className="truncate text-xs text-muted-foreground">
-                <span className="mr-1.5 rounded border px-1 py-px text-[10px] uppercase tracking-wide">{t.source === "piped" ? "YouTube" : t.source === "jiosaavn" ? "JioSaavn" : "Deezer"}</span>
+                <span className="mr-1.5 rounded border px-1 py-px text-[10px] uppercase tracking-wide">{t.source === "piped" ? "Piped" : "Deezer"}</span>
                 {t.artistId ? <button onClick={() => openArtist(t.artistId)} className="hover:underline">{t.artist}</button> : <span>{t.artist}</span>}
-                {t.album && <> · {t.albumId ? <button onClick={() => openAlbum(t.albumId)} className="hover:underline">{t.album}</button> : <span>{t.album}</span>}</>}
+                {t.album && <> · <button onClick={() => openAlbum(t.albumId)} className="hover:underline">{t.album}</button></>}
               </div>
             </div>
             <span className="hidden text-xs tabular-nums text-muted-foreground sm:inline">{t.duration ? fmt(t.duration) : ""}</span>
@@ -271,7 +270,7 @@ export function MusicView() {
         </form>
         {track && <button onClick={toggleLyrics} className={cn("rounded-md p-2 hover:bg-accent", lyricsOpen && "bg-accent")} aria-label="Lyrics"><Mic2 className="size-4" /></button>}
         <RoomButton kind="music" />
-        <select value={player.server} onChange={(e) => setServer(e.target.value as Server)} aria-label="Music source" className="max-w-28 shrink-0 rounded-md border bg-card px-2 py-1.5 text-sm sm:max-w-none">
+        <select value={player.server} onChange={(e) => setServer(e.target.value as Server)} aria-label="Music source" className="hidden rounded-md border bg-card px-2 py-1.5 text-sm sm:block">
           {SERVERS.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
         </select>
       </header>
@@ -335,7 +334,7 @@ export function MusicView() {
           {!loading && view && (view.kind === "search" || view.kind === "genre") && <>
             {view.kind === "genre"
               ? <Hero label="Genre" title={view.title} sub={`Top ${view.tracks.length} songs right now`} tracks={view.tracks} art={view.albums[0]?.art} />
-              : <><h1 className="font-display text-3xl">{view.title}</h1>{(view as any).pipedDown && <p role="status" className="mt-1 text-sm text-muted-foreground">YouTube audio is temporarily unavailable — other sources are still available.</p>}</>}
+              : <><h1 className="font-display text-3xl">{view.title}</h1>{(view as any).pipedDown && <p role="status" className="mt-1 text-sm text-destructive">Piped is offline right now (all servers down) — showing other results.</p>}</>}
             {view.artists.length > 0 && <><H>Artists</H><Row>{view.artists.map((a) => <Card key={a.id} round art={a.art} title={a.name} onClick={() => openArtist(a.id)} />)}</Row></>}
             <H>Songs</H><Tracks list={view.tracks} />
             {view.playlists && view.playlists.length > 0 && <><H>Playlists</H><Row>{view.playlists.map((p) => <Card key={p.id} art={p.art} title={p.title} sub={`${p.count} songs`} onClick={() => openPlaylist(p.id)} />)}</Row></>}
