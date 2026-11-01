@@ -169,6 +169,9 @@ type StreamingServer = {
 };
 
 export const STREAMING_SERVERS: StreamingServer[] = [
+  // Documented TMDB embed routes; audio availability is checked per title.
+  { id: 'vidsrccc', name: 'VidSrc.cc', category: 'multi', url: (id, type = 'movie', s, e) => type === 'tv' && s && e ? `https://vidsrc.cc/v2/embed/tv/${id}/${s}/${e}` : `https://vidsrc.cc/v2/embed/movie/${id}` },
+  { id: 'vidsrcicu', name: 'VidSrc.icu', category: 'multi', url: (id, type = 'movie', s, e) => type === 'tv' && s && e ? `https://vidsrc.icu/embed/tv/${id}/${s}/${e}` : `https://vidsrc.icu/embed/movie/${id}` },
   // 🔥 NEW RELEASES — best for early releases / latest movies
   { id: 'vidlink', name: 'VidLink Pro', category: 'new', url: (id, type = 'movie', s, e) => type === 'tv' && s && e ? `https://vidlink.pro/tv/${id}/${s}/${e}` : `https://vidlink.pro/${type}/${id}` },
   { id: 'embedapi', name: 'Embed-API', category: 'new', url: (id, type = 'movie', s, e) => type === 'tv' && s && e ? `https://embed-api.stream/embed/tv/${id}/${s}/${e}` : `https://embed-api.stream/embed/${type}/${id}` },

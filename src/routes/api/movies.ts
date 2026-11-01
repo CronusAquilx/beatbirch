@@ -88,6 +88,22 @@ async function handle({ request }: { request: Request }) {
   const token = url.searchParams.get("token") || "";
   const self = `${url.origin}/api/movies`;
 
+  // Public anime metadata only: the viewer confirms the exact series/season.
+  const anime = url.searchParams.get("anime");
+  if (anime !== null) {
+    const query = anime.trim();
+    if (query.length < 2 || query.length > 160) return Response.json({ error: "Invalid anime title" }, { status: 400 });
+    try {
+      const target = new URL("https://api.jikan.moe/v4/anime");
+      target.searchParams.set("q", query);
+      target.searchParams.set("limit", "8");
+      const upstream = await fetch(target, { signal: AbortSignal.timeout(10000) });
+      if (!upstream.ok) return Response.json({ error: "Anime lookup unavailable" }, { status: 502 });
+      const result = await upstream.json() as { data?: { mal_id: number; title: string; title_english?: string | null; episodes?: number | null }[] };
+      return Response.json({ matches: (result.data ?? []).map(item => ({ id: item.mal_id, title: item.title_english ? `${item.title_english} · ${item.title}` : item.title, episodes: item.episodes ?? null })) }, { headers: { "cache-control": "public, max-age=300" } });
+    } catch { return Response.json({ error: "Anime lookup unavailable" }, { status: 502 }); }
+  }
+
   // --- TMDB API data ---
   const tmdbPath = url.searchParams.get("tmdb");
   if (tmdbPath) {
