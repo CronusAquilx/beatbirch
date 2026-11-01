@@ -1,5 +1,9 @@
 # Birchbeat import roadmap
 
+## Current request — spoken languages
+- [ ] Add anime English dub and movie audio-language choices using supported playback tracks, separately from captions.
+- [ ] Test audio selection and unavailable-track behavior; provider playback remains user-tested.
+
 ## Current request — desktop polish
 - [x] Add dock magnification, window opening/closing motion and selectable Rainfall/Lake ripples; wire Classic/Launcher image motion without overriding saved choices or reduced-motion controls.
 - [x] Add shared Spotify, Crunchyroll, Chrome and Steam-shaped app icons and Microsoft-style Birch Store for existing apps (no new provider services or downloads).
