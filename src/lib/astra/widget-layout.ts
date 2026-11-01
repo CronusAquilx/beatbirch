@@ -7,5 +7,5 @@ export function widgetBounds(widget: DesktopWidget, width: number, height: numbe
   return { ...widget, width: w, height: h, x: Math.max(0, Math.min(widget.x, width - w)), y: Math.max(0, Math.min(widget.y, height - h)) };
 }
 export function newWidget(kind: WidgetKind, id: string, index: number): DesktopWidget {
-  return { id, kind, title: WIDGET_NAMES[kind], x: 760 + index % 2 * 16, y: 12 + index % 3 * 206, width: 252, height: kind === "calendar" ? 300 : 194, glass: true };
+  return { id, kind, title: WIDGET_NAMES[kind], x: index % 3 === 1 ? 110 : 760, y: index % 3 === 0 ? 12 : 220, width: 252, height: kind === "calendar" ? 300 : 194, glass: true };
 }
