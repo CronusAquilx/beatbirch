@@ -1,8 +1,9 @@
 # Birchbeat import roadmap
 
 ## Current request — video-referenced layouts
-- [ ] Identify the appearance and features shown in the four supplied TikTok videos — blocked by TikTok's login overlay; needs uploaded videos/screenshots or the actual website addresses.
-- [ ] Match Basic Launcher, Classic and Windows to the references while preserving other layouts — awaits clear visual references.
+- [x] Inspect five uploaded reference videos: wallpaper desktops, centered weekday/date, colorful app docks, compact system bars and floating app windows.
+- [x] Apply the references' desktop presentation to Classic/Launcher home and Windows: wallpaper, centered weekday/date/search, colorful bottom docks, compact system bar and existing Windows app windows. Preserve console layouts, saved wallpaper choices and music interface; this is a reference-inspired recreation, not a copy of those sites' private code or additional services.
+- [x] Pass 13 appearance/preferences/window regression tests and clean preview compilation; verify all three guest home screens, Games navigation/window and 390×580 layouts with no page errors or horizontal overflow. Provider playback remains user-tested.
 
 ## Current request — account picker and guests
 - [ ] Show layout first on each document, then shared account picker and Add User form across every layout.

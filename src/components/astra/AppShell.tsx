@@ -5,8 +5,11 @@ import { NowPlayingBar } from "@/components/music/NowPlayingBar";
 import { FocusPrompt, DevicePrompt } from "@/components/FocusPrompt";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Bot, Brain, Film, Gamepad2, Globe, AudioLines, Home, Lock, LogOut, Maximize, Music, Shield, Menu, MessageSquare, Plus, RotateCw, Search, Settings, Trash2 } from "lucide-react";
-import { usePrefs } from "@/lib/astra/prefs";
+import { ArrowLeft, ArrowRight, Bot, Brain, Film, Gamepad2, Globe, AudioLines, Home, Lock, LogOut, Maximize, Music, Shield, Menu, MessageSquare, Plus, RotateCw, Search, Settings, Trash2, Users } from "lucide-react";
+import { getAppearance, usePrefs } from "@/lib/astra/prefs";
+import { DesktopDock, DesktopStatusBar } from "./DesktopSurface";
+import { WallpaperEffects } from "./WallpaperEffects";
+import desktopWallpaper from "@/assets/launcher-wallpaper.jpg";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -68,6 +71,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const launcher = prefs.layout === "launcher";
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const homeSurface = path === "/home";
+  const look = getAppearance(prefs);
   useEffect(() => {
     const f = prefs.focus;
     if (prefs.console !== "off" || !f || f === "all") return;
@@ -77,14 +82,16 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <ShellCtx.Provider value={{ openMenu: () => setMobileOpen(true), openCommand: () => setCmdOpen(true) }}>
-      <div className="app-shell flex h-dvh overflow-hidden bg-background">
-        {launcher ? (
+      <div className={cn("app-shell flex h-dvh overflow-hidden bg-background", homeSurface && "desktop-home-shell", launcher && "reference-launcher")}>
+        {homeSurface && look.artwork && <img src={look.customBg || desktopWallpaper} alt="" width={1920} height={1080} className="reference-wallpaper"/>}
+        {homeSurface && <WallpaperEffects/>}
+        {!homeSurface && (launcher ? (
           <IconRail onSearch={() => setCmdOpen(true)} />
         ) : (
           <aside className="classic-sidebar hidden w-64 shrink-0 border-r border-sidebar-border bg-sidebar md:flex">
             <SidebarBody onNavigate={() => {}} onSearch={() => setCmdOpen(true)} />
           </aside>
-        )}
+        ))}
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetContent side="left" className="w-[82vw] max-w-72 border-sidebar-border bg-sidebar p-0">
             <SheetTitle className="sr-only">Menu</SheetTitle>
@@ -97,10 +104,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             />
           </SheetContent>
         </Sheet>
-        <main className="flex min-w-0 flex-1 flex-col">
-          {launcher && <TopBar />}
+        <main className="relative flex min-w-0 flex-1 flex-col">
+          {homeSurface ? <DesktopStatusBar onApps={() => setCmdOpen(true)} onSettings={() => void navigate({ to: "/settings" })}/> : launcher && <TopBar />}
           <div className="min-h-0 flex-1"><RoomFollower />{children}</div>
           <NowPlayingBar />
+          {(homeSurface || launcher) && <div className="desktop-dock-area"><DesktopDock onSearch={() => setCmdOpen(true)}/></div>}
         </main>
       </div>
       <CommandMenu open={cmdOpen} onOpenChange={setCmdOpen} />
@@ -286,6 +294,7 @@ function CommandMenu({ open, onOpenChange }: { open: boolean; onOpenChange: (o: 
       <CommandList>
         <CommandEmpty>Nothing found.</CommandEmpty>
         <CommandGroup heading="Actions">
+          {DESKTOP_COMMANDS.map(item => <CommandItem key={item.to} onSelect={() => go(() => navigate({ to: item.to }))}><item.icon/>{item.label}</CommandItem>)}
           <CommandItem onSelect={() => go(() => navigate({ to: "/chat" }))}>
             <Plus /> New chat
           </CommandItem>
@@ -309,6 +318,15 @@ function CommandMenu({ open, onOpenChange }: { open: boolean; onOpenChange: (o: 
     </CommandDialog>
   );
 }
+
+const DESKTOP_COMMANDS = [
+  { to: "/home", label: "Home", icon: Home },
+  { to: "/games", label: "Games", icon: Gamepad2 },
+  { to: "/web", label: "Browser", icon: Globe },
+  { to: "/movies", label: "Movies", icon: Film },
+  { to: "/music", label: "Music", icon: Music },
+  { to: "/console/social", label: "Friends", icon: Users },
+] as const;
 
 function AdminLink({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
   const { user } = useAuth();
