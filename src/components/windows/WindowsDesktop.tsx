@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils";
 import wallpaper from "@/assets/windows-wallpaper.jpg";
 import { WallpaperEffects } from "@/components/astra/WallpaperEffects";
 import { DesktopClock, DesktopStatusBar } from "@/components/astra/DesktopSurface";
+import { AppIcon } from "@/components/astra/AppIcon";
+import { StoreView } from "./views/StoreView";
 
 const MusicView = lazy(() => import("./views/MusicView").then(m => ({ default: m.MusicView })));
 const MoviesView = lazy(() => import("./views/MoviesView").then(m => ({ default: m.MoviesView })));
@@ -28,10 +30,11 @@ const SettingsView = lazy(() => import("./views/SettingsView").then(m => ({ defa
 const SocialHub = lazy(() => import("@/components/social/SocialHub").then(m => ({ default: m.SocialHub })));
 const APPS = [
   { id: "home", title: "Home", icon: Home, tone: "cyan" },
+  { id: "store", title: "Birch Store", icon: LayoutGrid, tone: "cyan" },
   { id: "games", title: "Games", icon: Gamepad2, tone: "green" },
   { id: "web", title: "Browser", icon: Globe, tone: "cyan" },
   { id: "movies", title: "Movies & TV", icon: Film, tone: "coral" },
-  { id: "music", title: "Music", icon: Music, tone: "rose" },
+  { id: "music", title: "Music", icon: Music, tone: "green" },
   { id: "chat", title: "BirchBlock AI", icon: Bot, tone: "gold" },
   { id: "social", title: "Friends & parties", icon: Users, tone: "green" },
   { id: "memory", title: "Memory", icon: Brain, tone: "gold" },
@@ -50,6 +53,7 @@ export function WindowsDesktop({ children, desktopOnly = false }: { children?: R
   const [state, dispatch] = useReducer(desktopReducer, { windows: [], active: null });
   const [start, setStart] = useState(false); const [tasks, setTasks] = useState(false); const [quick, setQuick] = useState(false);
   const [query, setQuery] = useState(""); const [addTab, setAddTab] = useState<string | null>(null);
+  const [closing, setClosing] = useState<string[]>([]);
   const [now, setNow] = useState(new Date()); const [area, setArea] = useState({ width: 1280, height: 800 });
   const workspace = useRef<HTMLDivElement>(null);
   const routeId = useRef<string | null>(null);
@@ -82,13 +86,18 @@ export function WindowsDesktop({ children, desktopOnly = false }: { children?: R
     };
     window.addEventListener("keydown", key); return () => window.removeEventListener("keydown", key);
   }, [state]);
-  const close = (id: string) => { dispatch({ type: "close", id }); if (id === routeId.current) { routeId.current = null; void navigate({ to: "/desktop" }); } };
+  const close = (id: string) => {
+    const finish = () => { dispatch({ type: "close", id }); setClosing(ids => ids.filter(value => value !== id)); if (id === routeId.current) { routeId.current = null; void navigate({ to: "/desktop" }); } };
+    if (look.reduceMotion || prefs.perfMode || prefs.device === "phone" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) { finish(); return; }
+    setClosing(ids => [...ids, id]); window.setTimeout(finish, 180);
+  };
   const patch = (id: string, value: Partial<DesktopWindow>) => dispatch({ type: "patch", id, patch: value });
-  const appButton = (app: typeof APPS[number], target?: string) => <Button key={app.id} variant="ghost" className="windows-app-button" onClick={() => open(app.id, target)}><span className="windows-app-icon" data-tone={app.tone}><app.icon/></span><span>{app.title}</span></Button>;
+  const appButton = (app: typeof APPS[number], target?: string) => <Button key={app.id} variant="ghost" className="windows-app-button" onClick={() => open(app.id, target)}><span className="windows-app-icon" data-tone={app.tone}><AppIcon app={app.id}/></span><span>{app.title}</span></Button>;
   const home = <div className="windows-home"><header><span className="text-xs text-muted-foreground">BIRCHBLOCK</span><h1 className="mt-2 text-3xl font-semibold">Home</h1><p className="mt-2 text-sm text-muted-foreground">{String(name)}’s workspace</p></header><h2 className="mt-8 mb-4 text-sm font-semibold">Your apps</h2><div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{APPS.filter(a => a.id !== "home").map(a => appButton(a))}</div><div className="mt-8 flex items-center justify-between border-t pt-5"><div><p className="text-sm font-medium">Personalization</p><p className="mt-1 text-xs text-muted-foreground">Windows appearance</p></div><Button variant="ghost" onClick={() => open("settings")}><Settings/><ChevronRight/></Button></div></div>;
   const renderApp = (tab: WindowTab) => {
     switch (tab.app) {
       case "home": return home;
+      case "store": return <StoreView onOpen={app => open(app)}/>;
       case "music": return <MusicView/>;
       case "movies": return <MoviesView/>;
       case "games": return <GamesView/>;
@@ -107,7 +116,7 @@ export function WindowsDesktop({ children, desktopOnly = false }: { children?: R
     <DesktopStatusBar onApps={() => { setStart(!start); setQuick(false); }} onSettings={() => { setQuick(!quick); setStart(false); }}/>
     <div ref={workspace} className="relative min-h-0 flex-1" onPointerDown={e => { if (e.target === e.currentTarget) { setStart(false); setQuick(false); setTasks(false); } }}>
       <div className="windows-desktop-center"><DesktopClock/><Button variant="ghost" className="desktop-search windows-desktop-search" aria-label="Find an app" onClick={() => { setStart(true); setQuery(""); }}><Search/><span>Search apps</span><LayoutGrid/></Button></div>
-      <div className="windows-shortcuts absolute left-3 top-4 flex flex-col gap-2">{APPS.filter(a => ["home","games","web","music","movies","settings"].includes(a.id)).map(a => <Button key={a.id} variant="ghost" className="windows-shortcut" onClick={() => open(a.id)} aria-label={`Open ${a.title}`}><span className="windows-app-icon" data-tone={a.tone}><a.icon/></span><span>{a.title}</span></Button>)}</div>
+      <div className="windows-shortcuts absolute left-3 top-4 flex flex-col gap-2">{APPS.filter(a => ["store","games","web","music","movies","settings"].includes(a.id)).map(a => <Button key={a.id} variant="ghost" className="windows-shortcut" onClick={() => open(a.id)} aria-label={`Open ${a.title}`}><span className="windows-app-icon" data-tone={a.tone}><AppIcon app={a.id}/></span><span>{a.title}</span></Button>)}</div>
       <div className="windows-brand pointer-events-none absolute bottom-6 right-7 text-right"><p className="text-sm font-semibold">BirchBlock</p><p className="mt-1 text-xs opacity-70">Windows desktop</p></div>
       {state.windows.map((w, i) => {
         const compact = area.width < 640; const maximized = compact || w.mode === "maximized";
@@ -116,7 +125,7 @@ export function WindowsDesktop({ children, desktopOnly = false }: { children?: R
         const height = maximized || snapped ? area.height : Math.min(w.height, area.height - 24);
         const position = { x: maximized || w.mode === "left" ? 0 : w.mode === "right" ? area.width / 2 : Math.min(w.x, Math.max(0, area.width - width)), y: maximized || snapped ? 0 : Math.min(w.y, Math.max(0, area.height - height)) };
         return <Rnd key={w.id} bounds="parent" minWidth={Math.min(360, area.width)} minHeight={240} size={{ width, height }} position={position} disableDragging={maximized || snapped} enableResizing={!maximized && !snapped} dragHandleClassName="windows-drag-handle" cancel="button,input" style={{ zIndex: state.active === w.id ? 100 : i + 1, display: w.minimized ? "none" : undefined }} onMouseDown={() => dispatch({ type: "focus", id: w.id })} onDragStop={(_e, d) => patch(w.id, { x: d.x, y: d.y })} onResizeStop={(_e, _dir, ref, _delta, pos) => patch(w.id, { width: ref.offsetWidth, height: ref.offsetHeight, x: pos.x, y: pos.y })}>
-          <section aria-label={`${w.tabs.find(t => t.id === w.activeTab)?.title ?? "App"} window`} className={cn("windows-window flex size-full flex-col overflow-hidden", state.active === w.id && "is-active")}>
+          <section aria-label={`${w.tabs.find(t => t.id === w.activeTab)?.title ?? "App"} window`} className={cn("windows-window flex size-full flex-col overflow-hidden", state.active === w.id && "is-active", closing.includes(w.id) && "is-closing")}>
             <header className="windows-drag-handle flex h-10 shrink-0 items-center border-b bg-secondary/80 pl-3" onDoubleClick={() => patch(w.id, { mode: w.mode === "maximized" ? "normal" : "maximized" })}>
               <Monitor className="mr-2 size-3.5 text-star"/><span className="min-w-0 flex-1 truncate text-xs">{w.tabs.find(t => t.id === w.activeTab)?.title}</span>
               <Button variant="ghost" size="icon" title="Snap left" aria-label="Snap left" className="windows-caption" onClick={() => patch(w.id, { mode: "left" })}><PanelLeft/></Button>
@@ -147,8 +156,8 @@ export function WindowsDesktop({ children, desktopOnly = false }: { children?: R
     <div className="relative z-[310]"><NowPlayingBar/></div>
     <footer className="windows-taskbar windows-glass relative z-[310] flex h-14 shrink-0 items-center border-t px-3">
       <div className="flex min-w-0 flex-1 justify-center gap-1 overflow-x-auto"><Button variant="ghost" size="icon" className={cn("windows-task-button",start && "bg-accent")} title="Start" aria-label="Start" onClick={() => { setStart(!start); setTasks(false); setQuick(false); }}><span className="windows-start-logo" aria-hidden="true"><i/><i/><i/><i/></span></Button><Button variant="ghost" size="icon" title="Search" aria-label="Search apps" className="windows-task-button" onClick={() => { setStart(true); setQuery(""); }}><Search/></Button><Button variant="ghost" size="icon" title="Task view" aria-label="Task view" className="windows-task-button" onClick={() => { setTasks(!tasks); setStart(false); }}><LayoutGrid/></Button>
-        {APPS.filter(a => ["games", "web", "movies", "music", "chat", "settings"].includes(a.id)).map(a => <Button key={a.id} variant="ghost" size="icon" className="windows-task-button desktop-dock-item" title={a.title} aria-label={`Launch ${a.title}`} onClick={() => open(a.id)}><span className="desktop-color-icon" data-tone={a.tone}><a.icon/></span></Button>)}
-        {state.windows.map(w => { const tab = w.tabs.find(t => t.id === w.activeTab); const info = appInfo(tab?.app ?? "home"); return <Button key={w.id} variant="ghost" size="icon" className={cn("windows-task-button relative",state.active === w.id && "bg-accent")} title={tab?.title} aria-label={`Restore ${tab?.title}`} onClick={() => state.active === w.id && !w.minimized ? dispatch({ type: "minimize", id: w.id }) : dispatch({ type: "focus", id: w.id })}><info.icon className="text-star"/><span className={cn("absolute bottom-0.5 h-0.5 rounded bg-muted-foreground", state.active === w.id ? "w-4 bg-star" : "w-1")}/></Button>; })}
+        {APPS.filter(a => ["store", "games", "web", "movies", "music", "chat", "settings"].includes(a.id)).map(a => <Button key={a.id} variant="ghost" size="icon" className="windows-task-button desktop-dock-item" title={a.title} aria-label={`Launch ${a.title}`} onClick={() => open(a.id)}><span className="desktop-color-icon" data-tone={a.tone}><AppIcon app={a.id}/></span></Button>)}
+        {state.windows.map(w => { const tab = w.tabs.find(t => t.id === w.activeTab); return <Button key={w.id} variant="ghost" size="icon" className={cn("windows-task-button relative",state.active === w.id && "bg-accent")} title={tab?.title} aria-label={`Restore ${tab?.title}`} onClick={() => state.active === w.id && !w.minimized ? dispatch({ type: "minimize", id: w.id }) : dispatch({ type: "focus", id: w.id })}><AppIcon app={tab?.app ?? "home"} className="text-star"/><span className={cn("absolute bottom-0.5 h-0.5 rounded bg-muted-foreground", state.active === w.id ? "w-4 bg-star" : "w-1")}/></Button>; })}
       </div>
       <Button variant="ghost" size="sm" aria-label="Quick settings" title="Quick settings" onClick={() => { setQuick(!quick); setStart(false); }} className="ml-2 px-2"><Wifi/><Volume2 className="hidden sm:block"/></Button>
       {look.showClock && <div className="shrink-0 px-2 text-right text-[11px] tabular-nums"><p>{now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p><p>{now.toLocaleDateString()}</p></div>}

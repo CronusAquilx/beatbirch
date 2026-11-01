@@ -3,6 +3,18 @@ import { activeLayout, initialAppearance, updateAppearance } from "./appearance"
 import { DEFAULT_PREFS } from "./prefs";
 
 describe("layout personalization", () => {
+  it("keeps live wallpapers separate for each desktop layout", () => {
+    const original = initialAppearance(DEFAULT_PREFS);
+    const saved = updateAppearance({ windows: original, classic: original }, "windows", original, { liveWallpaper: "water" });
+    expect(saved.windows?.liveWallpaper).toBe("water");
+    expect(saved.classic?.liveWallpaper).toBe("off");
+  });
+  it("keeps the clock font separate for each desktop layout", () => {
+    const original = initialAppearance(DEFAULT_PREFS);
+    const saved = updateAppearance({ windows: original, launcher: original }, "windows", original, { clockFont: "digital" });
+    expect(saved.windows?.clockFont).toBe("digital");
+    expect(saved.launcher?.clockFont).toBe("clean");
+  });
   it("keeps animated wallpapers independent between Windows, PS5 and Xbox", () => {
     const original = initialAppearance(DEFAULT_PREFS);
     const saved = updateAppearance({ windows: original, sony: original, series: original }, "windows", original, { wallpaperMotion: "drift", particles: "stars", particleDensity: "rich", appTransparency: "glass" });

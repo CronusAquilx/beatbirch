@@ -22,6 +22,7 @@ import { Route as AuthenticatedMemoryRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedMusicRouteImport } from './routes/_authenticated/music'
 import { Route as AuthenticatedPlayRouteImport } from './routes/_authenticated/play'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedStoreRouteImport } from './routes/_authenticated/store'
 import { Route as AuthenticatedVoiceRouteImport } from './routes/_authenticated/voice'
 import { Route as AuthenticatedWebRouteImport } from './routes/_authenticated/web'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
@@ -118,6 +119,11 @@ const AuthenticatedPlayRoute = AuthenticatedPlayRouteImport.update({
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedStoreRoute = AuthenticatedStoreRouteImport.update({
+  id: '/store',
+  path: '/store',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedVoiceRoute = AuthenticatedVoiceRouteImport.update({
@@ -316,6 +322,7 @@ export interface FileRoutesByFullPath {
   '/music': typeof AuthenticatedMusicRoute
   '/play': typeof AuthenticatedPlayRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/store': typeof AuthenticatedStoreRoute
   '/voice': typeof AuthenticatedVoiceRoute
   '/web': typeof AuthenticatedWebRoute
   '/api/chat': typeof ApiChatRoute
@@ -363,6 +370,7 @@ export interface FileRoutesByTo {
   '/music': typeof AuthenticatedMusicRoute
   '/play': typeof AuthenticatedPlayRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/store': typeof AuthenticatedStoreRoute
   '/voice': typeof AuthenticatedVoiceRoute
   '/web': typeof AuthenticatedWebRoute
   '/api/chat': typeof ApiChatRoute
@@ -412,6 +420,7 @@ export interface FileRoutesById {
   '/_authenticated/music': typeof AuthenticatedMusicRoute
   '/_authenticated/play': typeof AuthenticatedPlayRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/store': typeof AuthenticatedStoreRoute
   '/_authenticated/voice': typeof AuthenticatedVoiceRoute
   '/_authenticated/web': typeof AuthenticatedWebRoute
   '/api/chat': typeof ApiChatRoute
@@ -461,6 +470,7 @@ export interface FileRouteTypes {
     | '/music'
     | '/play'
     | '/settings'
+    | '/store'
     | '/voice'
     | '/web'
     | '/api/chat'
@@ -508,6 +518,7 @@ export interface FileRouteTypes {
     | '/music'
     | '/play'
     | '/settings'
+    | '/store'
     | '/voice'
     | '/web'
     | '/api/chat'
@@ -556,6 +567,7 @@ export interface FileRouteTypes {
     | '/_authenticated/music'
     | '/_authenticated/play'
     | '/_authenticated/settings'
+    | '/_authenticated/store'
     | '/_authenticated/voice'
     | '/_authenticated/web'
     | '/api/chat'
@@ -703,6 +715,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/store': {
+      id: '/_authenticated/store'
+      path: '/store'
+      fullPath: '/store'
+      preLoaderRoute: typeof AuthenticatedStoreRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/voice': {
@@ -948,6 +967,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMusicRoute: typeof AuthenticatedMusicRoute
   AuthenticatedPlayRoute: typeof AuthenticatedPlayRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedStoreRoute: typeof AuthenticatedStoreRoute
   AuthenticatedVoiceRoute: typeof AuthenticatedVoiceRoute
   AuthenticatedWebRoute: typeof AuthenticatedWebRoute
   AuthenticatedChatThreadIdRoute: typeof AuthenticatedChatThreadIdRoute
@@ -979,6 +999,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMusicRoute: AuthenticatedMusicRoute,
   AuthenticatedPlayRoute: AuthenticatedPlayRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedStoreRoute: AuthenticatedStoreRoute,
   AuthenticatedVoiceRoute: AuthenticatedVoiceRoute,
   AuthenticatedWebRoute: AuthenticatedWebRoute,
   AuthenticatedChatThreadIdRoute: AuthenticatedChatThreadIdRoute,
