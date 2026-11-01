@@ -661,3 +661,103 @@ html[data-wallpaper-motion="zoom"] .windows-wallpaper, html[data-wallpaper-motio
   .account-opening .console-login-form { margin-top: 16px; }
   .account-opening .console-login-form > div:first-child { width: 64px; height: 64px; margin-bottom: 14px; }
 }
+
+/* Reference desktop surfaces: shared chrome, independently saved appearances. */
+:root {
+  --desktop-rose: oklch(0.65 0.21 355);
+  --desktop-violet: oklch(0.61 0.18 300);
+  --desktop-aqua: oklch(0.72 0.13 190);
+  --desktop-icon-shadow: inset 0 1px 0 color-mix(in oklch, var(--desktop-ink) 35%, transparent), 0 3px 8px color-mix(in oklch, var(--console-ink) 30%, transparent);
+  --desktop-surface: color-mix(in oklch, var(--background) 72%, transparent);
+  --desktop-dock-surface: color-mix(in oklch, var(--card) 78%, transparent);
+  --desktop-wallpaper-shade: color-mix(in oklch, var(--console-ink) 16%, transparent);
+}
+.desktop-home-shell { position: relative; isolation: isolate; }
+.reference-wallpaper { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: brightness(calc(1 - var(--custom-bg-dim, 55%) / 220)); z-index: -1; }
+.desktop-home-shell::before { content: ""; position: absolute; inset: 0; background: var(--desktop-wallpaper-shade); z-index: -1; }
+html .desktop-home-shell > main { background: none !important; }
+.desktop-system-bar { position: relative; z-index: 320; display: flex; align-items: center; gap: 12px; height: 34px; min-height: 34px; padding: 0 16px; color: var(--foreground); background: var(--desktop-surface); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); font-size: 11px; }
+.desktop-system-brand { height: 28px; padding: 0 4px; font-size: 11px; font-weight: 650; }
+.desktop-system-label { color: var(--muted-foreground); }
+.desktop-system-time { margin-left: auto; display: flex; gap: 12px; white-space: nowrap; font-size: 10px; font-variant-numeric: tabular-nums; }
+.desktop-system-bar > button:last-child { width: 44px; height: 28px; gap: 6px; }
+.reference-home { height: 100%; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 28px 20px; overflow-y: auto; color: var(--desktop-ink); }
+.reference-home-center { width: min(540px, 100%); display: flex; flex-direction: column; align-items: center; text-align: center; }
+.reference-home-brand { font-size: 18px; font-weight: 500; margin-bottom: 25px; opacity: .85; overflow-wrap: anywhere; }
+.desktop-clock { text-align: center; color: var(--desktop-ink); text-shadow: 0 2px 12px color-mix(in oklch, var(--console-ink) 45%, transparent); }
+.desktop-clock h2 { font-size: 62px; font-weight: 300; text-transform: uppercase; line-height: 1.25; letter-spacing: 0; }
+.desktop-clock-time { font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; margin-bottom: 12px; }
+.desktop-clock-date { font-size: 11px; text-transform: uppercase; margin-top: 8px; }
+.desktop-search { width: min(390px, 100%); height: 44px; margin-top: 30px; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--desktop-surface); backdrop-filter: blur(20px); color: var(--foreground); box-shadow: var(--desktop-shadow); }
+.desktop-search input::placeholder { color: var(--muted-foreground); }
+.desktop-search > button { width: 32px; height: 32px; }
+.desktop-quick-apps { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; margin-top: 16px; }
+.desktop-quick-apps a { height: 30px; font-size: 11px; padding: 0 10px; color: var(--desktop-ink); }
+.desktop-quick-apps a:hover { color: var(--foreground); }
+.desktop-quick-apps svg { width: 13px; height: 13px; }
+.desktop-dock-area { flex-shrink: 0; display: flex; justify-content: center; padding: 8px 16px 14px; }
+.desktop-dock { display: flex; align-items: center; gap: 7px; width: max-content; max-width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--desktop-dock-surface); backdrop-filter: blur(24px); box-shadow: var(--desktop-shadow); }
+.desktop-dock-item { position: relative; width: 42px; height: 44px; flex-shrink: 0; padding: 3px; border-radius: 6px; transition: transform .18s ease; }
+.desktop-dock-item:hover { transform: translateY(-5px); }
+.desktop-dock-item.is-current::after { content: ""; position: absolute; bottom: -3px; width: 4px; height: 3px; border-radius: 3px; background: var(--star); }
+.desktop-color-icon { --icon-color: var(--desktop-cyan); display: grid; place-items: center; width: 34px; height: 34px; border-radius: 7px; color: var(--desktop-ink); background: var(--icon-color); box-shadow: var(--desktop-icon-shadow); }
+.desktop-color-icon svg { width: 21px; height: 21px; stroke-width: 1.8; }
+.desktop-color-icon[data-tone="green"] { --icon-color: var(--desktop-green); }
+.desktop-color-icon[data-tone="coral"] { --icon-color: var(--desktop-coral); }
+.desktop-color-icon[data-tone="gold"] { --icon-color: var(--desktop-gold); }
+.desktop-color-icon[data-tone="rose"] { --icon-color: var(--desktop-rose); }
+.desktop-color-icon[data-tone="violet"] { --icon-color: var(--desktop-violet); }
+.desktop-color-icon[data-tone="aqua"] { --icon-color: var(--desktop-aqua); }
+.desktop-color-icon[data-tone="neutral"] { --icon-color: var(--muted-foreground); }
+.desktop-dock-divider { width: 1px; height: 28px; flex-shrink: 0; background: var(--border); }
+.desktop-dock-tooltip { display: none; position: absolute; bottom: calc(100% + 12px); left: 50%; transform: translateX(-50%); font-size: 10px; padding: 5px 8px; white-space: nowrap; border-radius: 5px; border: 1px solid var(--border); background: var(--popover); color: var(--popover-foreground); box-shadow: var(--desktop-shadow); }
+.desktop-dock-item:hover .desktop-dock-tooltip, .desktop-dock-item:focus-visible .desktop-dock-tooltip { display: block; }
+.reference-launcher:not(.desktop-home-shell) .launcher-rail { display: none; }
+.windows-desktop-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(500px, calc(100% - 200px)); display: flex; flex-direction: column; align-items: center; }
+.windows-desktop-search { justify-content: flex-start; font-size: 12px; }
+.windows-desktop-search svg:last-child { margin-left: auto; }
+.windows-taskbar { width: max-content; max-width: calc(100% - 24px); align-self: center; height: 58px; margin: 0 12px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--desktop-dock-surface); padding: 4px 8px; }
+.windows-taskbar > div:first-child { scrollbar-width: none; }
+.windows-taskbar > div:first-child::-webkit-scrollbar { display: none; }
+.windows-taskbar > div:nth-last-child(2) { display: none; }
+.windows-app-icon { --icon-color: var(--desktop-cyan); border-radius: 7px; background: var(--icon-color); color: var(--desktop-ink); box-shadow: var(--desktop-icon-shadow); }
+.windows-app-icon svg { width: 23px; height: 23px; }
+.windows-app-icon[data-tone="green"] { --icon-color: var(--desktop-green); color: var(--desktop-ink); }
+.windows-app-icon[data-tone="coral"] { --icon-color: var(--desktop-coral); color: var(--desktop-ink); }
+.windows-app-icon[data-tone="rose"] { --icon-color: var(--desktop-rose); color: var(--desktop-ink); }
+.windows-app-icon[data-tone="gold"] { --icon-color: var(--desktop-gold); color: var(--desktop-ink); }
+.windows-app-icon[data-tone="neutral"] { --icon-color: var(--muted-foreground); color: var(--desktop-ink); }
+.windows-window > header { background: color-mix(in oklch, var(--secondary) 84%, transparent); backdrop-filter: blur(20px); }
+.windows-window { background: var(--desktop-surface); }
+.windows-glass { background: var(--desktop-dock-surface); }
+html[data-artwork="off"] .desktop-home-shell .reference-home, html[data-artwork="off"] .desktop-clock { color: var(--foreground); text-shadow: none; }
+html[data-artwork="off"] .desktop-quick-apps a { color: var(--foreground); }
+@media (max-width: 639px) {
+  .desktop-system-bar { padding-inline: 10px; gap: 7px; }
+  .desktop-system-label { display: none; }
+  .desktop-system-time { font-size: 9px; gap: 7px; }
+  .desktop-clock h2 { font-size: 38px; }
+  .reference-home-brand { margin-bottom: 22px; font-size: 16px; }
+  .desktop-dock { gap: 2px; padding: 6px; }
+  .desktop-dock-item { width: 30px; height: 38px; padding: 1px; }
+  .desktop-color-icon { width: 28px; height: 28px; border-radius: 6px; }
+  .desktop-color-icon svg { width: 18px; height: 18px; }
+  .desktop-dock-area { padding: 6px 6px 10px; }
+  .desktop-dock-tooltip { display: none !important; }
+  .windows-desktop-center { left: 60%; width: calc(100% - 115px); }
+  .windows-desktop-center .desktop-clock h2 { font-size: 28px; }
+  .windows-desktop-center .desktop-clock-time { font-size: 13px; }
+  .windows-desktop-center .desktop-clock-date { font-size: 9px; }
+  .windows-desktop-search { padding: 0 12px; gap: 7px; }
+  .windows-taskbar { max-width: calc(100% - 12px); margin-inline: 6px; padding: 3px; }
+  .windows-taskbar .windows-task-button { width: 32px; height: 38px; }
+  .windows-taskbar > button { display: none; }
+  .windows-taskbar .windows-task-button > svg { width: 16px; height: 16px; }
+}
+@media (max-height: 600px) and (min-width: 640px) {
+  .reference-home { padding-block: 12px; }
+  .reference-home-brand { margin-bottom: 14px; }
+  .desktop-clock h2 { font-size: 48px; }
+  .desktop-search { margin-top: 22px; }
+}
+@media (prefers-reduced-motion: reduce) { .desktop-dock-item { transition: none; } .desktop-dock-item:hover { transform: none; } }

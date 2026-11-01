@@ -5,7 +5,7 @@ import { NowPlayingBar } from "@/components/music/NowPlayingBar";
 import { FocusPrompt, DevicePrompt } from "@/components/FocusPrompt";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Bot, Brain, Film, Gamepad2, Globe, AudioLines, Home, Lock, LogOut, Maximize, Music, Shield, Menu, MessageSquare, Plus, RotateCw, Search, Settings, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bot, Brain, Film, Gamepad2, Globe, AudioLines, Home, Lock, LogOut, Maximize, Music, Shield, Menu, MessageSquare, Plus, RotateCw, Search, Settings, Trash2, Users } from "lucide-react";
 import { getAppearance, usePrefs } from "@/lib/astra/prefs";
 import { DesktopDock, DesktopStatusBar } from "./DesktopSurface";
 import { WallpaperEffects } from "./WallpaperEffects";

@@ -15,6 +15,7 @@ import { RoomFollower } from "@/components/RoomFollower";
 import { cn } from "@/lib/utils";
 import wallpaper from "@/assets/windows-wallpaper.jpg";
 import { WallpaperEffects } from "@/components/astra/WallpaperEffects";
+import { DesktopClock, DesktopStatusBar } from "@/components/astra/DesktopSurface";
 
 const MusicView = lazy(() => import("./views/MusicView").then(m => ({ default: m.MusicView })));
 const MoviesView = lazy(() => import("./views/MoviesView").then(m => ({ default: m.MoviesView })));
@@ -30,7 +31,7 @@ const APPS = [
   { id: "games", title: "Games", icon: Gamepad2, tone: "green" },
   { id: "web", title: "Browser", icon: Globe, tone: "cyan" },
   { id: "movies", title: "Movies & TV", icon: Film, tone: "coral" },
-  { id: "music", title: "Music", icon: Music, tone: "coral" },
+  { id: "music", title: "Music", icon: Music, tone: "rose" },
   { id: "chat", title: "BirchBlock AI", icon: Bot, tone: "gold" },
   { id: "social", title: "Friends & parties", icon: Users, tone: "green" },
   { id: "memory", title: "Memory", icon: Brain, tone: "gold" },
@@ -103,7 +104,9 @@ export function WindowsDesktop({ children, desktopOnly = false }: { children?: R
   return <div className="windows-desktop fixed inset-0 flex flex-col overflow-hidden bg-background text-foreground">
     {look.artwork && <img src={look.customBg || wallpaper} width={1920} height={1088} alt="" className="windows-wallpaper absolute inset-0 size-full object-cover"/>}
     <WallpaperEffects/>
+    <DesktopStatusBar onApps={() => { setStart(!start); setQuick(false); }} onSettings={() => { setQuick(!quick); setStart(false); }}/>
     <div ref={workspace} className="relative min-h-0 flex-1" onPointerDown={e => { if (e.target === e.currentTarget) { setStart(false); setQuick(false); setTasks(false); } }}>
+      <div className="windows-desktop-center"><DesktopClock/><Button variant="ghost" className="desktop-search windows-desktop-search" aria-label="Find an app" onClick={() => { setStart(true); setQuery(""); }}><Search/><span>Search apps</span><LayoutGrid/></Button></div>
       <div className="windows-shortcuts absolute left-3 top-4 flex flex-col gap-2">{APPS.filter(a => ["home","games","web","music","movies","settings"].includes(a.id)).map(a => <Button key={a.id} variant="ghost" className="windows-shortcut" onClick={() => open(a.id)} aria-label={`Open ${a.title}`}><span className="windows-app-icon" data-tone={a.tone}><a.icon/></span><span>{a.title}</span></Button>)}</div>
       <div className="windows-brand pointer-events-none absolute bottom-6 right-7 text-right"><p className="text-sm font-semibold">BirchBlock</p><p className="mt-1 text-xs opacity-70">Windows desktop</p></div>
       {state.windows.map((w, i) => {
@@ -144,6 +147,7 @@ export function WindowsDesktop({ children, desktopOnly = false }: { children?: R
     <div className="relative z-[310]"><NowPlayingBar/></div>
     <footer className="windows-taskbar windows-glass relative z-[310] flex h-14 shrink-0 items-center border-t px-3">
       <div className="flex min-w-0 flex-1 justify-center gap-1 overflow-x-auto"><Button variant="ghost" size="icon" className={cn("windows-task-button",start && "bg-accent")} title="Start" aria-label="Start" onClick={() => { setStart(!start); setTasks(false); setQuick(false); }}><span className="windows-start-logo" aria-hidden="true"><i/><i/><i/><i/></span></Button><Button variant="ghost" size="icon" title="Search" aria-label="Search apps" className="windows-task-button" onClick={() => { setStart(true); setQuery(""); }}><Search/></Button><Button variant="ghost" size="icon" title="Task view" aria-label="Task view" className="windows-task-button" onClick={() => { setTasks(!tasks); setStart(false); }}><LayoutGrid/></Button>
+        {APPS.filter(a => ["games", "web", "movies", "music", "chat", "settings"].includes(a.id)).map(a => <Button key={a.id} variant="ghost" size="icon" className="windows-task-button desktop-dock-item" title={a.title} aria-label={`Launch ${a.title}`} onClick={() => open(a.id)}><span className="desktop-color-icon" data-tone={a.tone}><a.icon/></span></Button>)}
         {state.windows.map(w => { const tab = w.tabs.find(t => t.id === w.activeTab); const info = appInfo(tab?.app ?? "home"); return <Button key={w.id} variant="ghost" size="icon" className={cn("windows-task-button relative",state.active === w.id && "bg-accent")} title={tab?.title} aria-label={`Restore ${tab?.title}`} onClick={() => state.active === w.id && !w.minimized ? dispatch({ type: "minimize", id: w.id }) : dispatch({ type: "focus", id: w.id })}><info.icon className="text-star"/><span className={cn("absolute bottom-0.5 h-0.5 rounded bg-muted-foreground", state.active === w.id ? "w-4 bg-star" : "w-1")}/></Button>; })}
       </div>
       <Button variant="ghost" size="sm" aria-label="Quick settings" title="Quick settings" onClick={() => { setQuick(!quick); setStart(false); }} className="ml-2 px-2"><Wifi/><Volume2 className="hidden sm:block"/></Button>
