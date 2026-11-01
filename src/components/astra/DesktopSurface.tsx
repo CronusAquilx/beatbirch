@@ -12,7 +12,7 @@ export const DESKTOP_APPS = [
   { to: "/music", label: "Music", icon: Music, tone: "rose", focus: "music" },
   { to: "/chat", label: "BirchBlock AI", icon: Bot, tone: "gold", focus: "ai" },
   { to: "/memory", label: "Memory", icon: Brain, tone: "violet", focus: "ai" },
-  { to: "/social", label: "Friends", icon: Users, tone: "green", focus: "all" },
+  { to: "/console/social", label: "Friends", icon: Users, tone: "green", focus: "all" },
   { to: "/settings", label: "Settings", icon: Settings, tone: "neutral", focus: "all" },
 ] as const;
 

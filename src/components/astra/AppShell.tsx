@@ -325,7 +325,7 @@ const DESKTOP_COMMANDS = [
   { to: "/web", label: "Browser", icon: Globe },
   { to: "/movies", label: "Movies", icon: Film },
   { to: "/music", label: "Music", icon: Music },
-  { to: "/social", label: "Friends", icon: Users },
+  { to: "/console/social", label: "Friends", icon: Users },
 ] as const;
 
 function AdminLink({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
