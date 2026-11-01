@@ -41,4 +41,4 @@
 - App-specific navigation lives in shared views with skin-scoped native-app styling; wallpaper effects mount once per desktop/console shell and obey motion/performance preferences to preserve playback and gameplay isolation.
 - Developer-added games use a shared authenticated catalog protected by server role checks and database policies; arbitrary cloud URLs use the existing full proxy fallback, while arcade URLs reuse the inline player with proxied navigation.
 - Piped music runs through the existing /api/music server route (search, stream lookup, audio relay) with an env-configurable instance list and failover; no Edge Functions, and the browser never calls Piped directly.
-- Movie voice selection reads actual native, Video.js or JW Player audio tracks through the shared proxied player; never substitute subtitle settings or invent provider language flags, so unavailable dubs are not falsely advertised.
+- Movie voice search verifies actual audio tracks and tries each source once; anime URLs use confirmed MAL/AniList IDs, never TMDB IDs or guessed voice flags.

@@ -11,7 +11,7 @@ import { myRoomId, setRoomState, useRoom } from "@/lib/rooms";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { nextVoiceSource } from "@/lib/movies/voice-search";
-import { animeVoiceUrl, type AnimeMatch } from "@/lib/movies/anime-sources";
+import { animeIcuVoiceUrl, animeVoiceUrl, type AnimeMatch } from "@/lib/movies/anime-sources";
 
 const CAPTIONS = [
   ["off", "Off"], ["en", "English"], ["es", "Spanish"], ["fr", "French"],
@@ -52,6 +52,7 @@ function Watch() {
   const [voiceStatus, setVoiceStatus] = useState<'idle' | 'searching' | 'found' | 'missing'>('idle');
   const [animeMatches, setAnimeMatches] = useState<AnimeMatch[]>([]);
   const [animeId, setAnimeId] = useState<number | null>(null);
+  const [anilistId, setAnilistId] = useState<number | null>(null);
   const [animeLookup, setAnimeLookup] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const resume = Route.useSearch();
   const [season, setSeason] = useState(resume.s ?? 1);
@@ -73,13 +74,13 @@ function Watch() {
   const isAnime = d?.original_language === "ja" && Boolean(d.genres?.some(genre => genre.id === 16));
   const history = useWatchHistory();
   const room = useRoom("movies");
-  const voiceSources = school ? STREAMING_SERVERS.filter(source => source.id === 'apiplayer') : [...(isAnime && animeId ? [{ id: 'anime-vidlink' }] : []), ...STREAMING_SERVERS];
+  const voiceSources = school ? STREAMING_SERVERS.filter(source => source.id === 'apiplayer') : [...(isAnime && animeId ? [{ id: 'anime-vidlink' }] : []), ...(isAnime && anilistId ? [{ id: 'anime-icu' }] : []), ...STREAMING_SERVERS];
   function chooseVoice(value: string) {
     setVoice(value);
     voiceTried.current = new Set();
     setVoiceStatus(value === 'auto' ? 'idle' : 'searching');
     if (value !== 'auto' && !school && isAnime && animeId) setServerRaw('anime-vidlink');
-    if (value === 'auto' && server === 'anime-vidlink') setServerRaw('vidlink');
+    if (value === 'auto' && server.startsWith('anime-')) setServerRaw('vidlink');
   }
   function voiceResult(found: boolean) {
     if (voice === 'auto' || voiceStatus !== 'searching') return;
@@ -105,6 +106,13 @@ function Watch() {
       .catch(() => { if (!cancelled) setAnimeLookup('error'); });
     return () => { cancelled = true; };
   }, [isAnime, d?.id, voice]);
+  useEffect(() => {
+    setAnilistId(null);
+    if (!animeId) return;
+    let cancelled = false;
+    fetch(`/api/movies?animeMal=${animeId}&token=guest`).then(response => response.json() as Promise<{ anilistId: number | null }>).then(result => { if (!cancelled) setAnilistId(result.anilistId); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [animeId]);
 
   // Watch party: share what's playing, and follow changes others make.
   useEffect(() => {
@@ -215,8 +223,9 @@ function Watch() {
   const epCount = seasons.find((x) => x.season_number === season)?.episode_count ?? 1;
   const filteredServers = category === "all" ? STREAMING_SERVERS : STREAMING_SERVERS.filter((item) => item.category === category);
   const usingAnimeSource = server === 'anime-vidlink' && animeId !== null && voice !== 'auto';
-  const sourceName = usingAnimeSource ? 'VidLink Anime' : s.name;
-  const baseUrl = usingAnimeSource ? animeVoiceUrl(animeId, episode, voice === 'en' ? 'en' : 'ja') : s.url(n, type, isTV ? season : undefined, isTV ? episode : undefined);
+  const usingIcuAnime = server === 'anime-icu' && anilistId !== null && voice !== 'auto';
+  const sourceName = usingAnimeSource ? 'VidLink Anime' : usingIcuAnime ? 'VidSrc.icu Anime' : s.name;
+  const baseUrl = usingAnimeSource ? animeVoiceUrl(animeId, episode, voice === 'en' ? 'en' : 'ja') : usingIcuAnime ? animeIcuVoiceUrl(anilistId, episode, voice === 'en' ? 'en' : 'ja') : s.url(n, type, isTV ? season : undefined, isTV ? episode : undefined);
   const directUrl = `${baseUrl}${baseUrl.includes("?") ? "&" : "?"}autoplay=1${caption !== "off" ? `&sub_lang=${caption}` : ""}${startAt ? `&startAt=${startAt}&progress=${startAt}&t=${startAt}&start=${startAt}` : ""}`;
   const embedUrl = directUrl;
 
