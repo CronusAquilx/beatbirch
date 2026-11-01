@@ -18,6 +18,7 @@ import { WallpaperEffects } from "@/components/astra/WallpaperEffects";
 import { DesktopClock, DesktopStatusBar } from "@/components/astra/DesktopSurface";
 import { AppIcon } from "@/components/astra/AppIcon";
 import { StoreView } from "./views/StoreView";
+import { DesktopWidgets } from "@/components/astra/DesktopWidgets";
 
 const MusicView = lazy(() => import("./views/MusicView").then(m => ({ default: m.MusicView })));
 const MoviesView = lazy(() => import("./views/MoviesView").then(m => ({ default: m.MoviesView })));
@@ -118,6 +119,7 @@ export function WindowsDesktop({ children, desktopOnly = false }: { children?: R
       <div className="windows-desktop-center"><DesktopClock/><Button variant="ghost" className="desktop-search windows-desktop-search" aria-label="Find an app" onClick={() => { setStart(true); setQuery(""); }}><Search/><span>Search apps</span><LayoutGrid/></Button></div>
       <div className="windows-shortcuts absolute left-3 top-4 flex flex-col gap-2">{APPS.filter(a => ["store","games","web","music","movies","settings"].includes(a.id)).map(a => <Button key={a.id} variant="ghost" className="windows-shortcut" onClick={() => open(a.id)} aria-label={`Open ${a.title}`}><span className="windows-app-icon" data-tone={a.tone}><AppIcon app={a.id}/></span><span>{a.title}</span></Button>)}</div>
       <div className="windows-brand pointer-events-none absolute bottom-6 right-7 text-right"><p className="text-sm font-semibold">BirchBlock</p><p className="mt-1 text-xs opacity-70">Windows desktop</p></div>
+      <DesktopWidgets onMusic={() => open("music")}/>
       {state.windows.map((w, i) => {
         const compact = area.width < 640; const maximized = compact || w.mode === "maximized";
         const snapped = w.mode === "left" || w.mode === "right";

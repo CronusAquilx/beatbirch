@@ -8,6 +8,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { ArrowLeft, ArrowRight, Bot, Brain, Film, Gamepad2, Globe, AudioLines, Home, Lock, LogOut, Maximize, Music, Shield, Menu, MessageSquare, Plus, RotateCw, Search, Settings, Trash2, Users } from "lucide-react";
 import { getAppearance, usePrefs } from "@/lib/astra/prefs";
 import { DesktopDock, DesktopStatusBar } from "./DesktopSurface";
+import { SwitchShell } from "./SwitchSurface";
 import { WallpaperEffects } from "./WallpaperEffects";
 import desktopWallpaper from "@/assets/launcher-wallpaper.jpg";
 import { toast } from "sonner";
@@ -80,6 +81,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (sec && sec !== f) navigate({ to: ({ ai: "/chat", web: "/web", movies: "/movies", music: "/music", games: "/games" } as const)[f], replace: true });
   }, [prefs.focus, prefs.console, path, navigate]);
 
+  if (prefs.layout === "switch") return <SwitchShell>{children}</SwitchShell>;
   return (
     <ShellCtx.Provider value={{ openMenu: () => setMobileOpen(true), openCommand: () => setCmdOpen(true) }}>
       <div className={cn("app-shell flex h-dvh overflow-hidden bg-background", homeSurface && "desktop-home-shell", launcher && "reference-launcher")}>
