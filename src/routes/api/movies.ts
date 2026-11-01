@@ -107,13 +107,13 @@ async function handle({ request }: { request: Request }) {
     const query = anime.trim();
     if (query.length < 2 || query.length > 160) return Response.json({ error: "Invalid anime title" }, { status: 400 });
     try {
-      const target = new URL("https://api.jikan.moe/v4/anime");
-      target.searchParams.set("q", query);
-      target.searchParams.set("limit", "8");
-      const upstream = await fetch(target, { signal: AbortSignal.timeout(10000) });
+      const upstream = await fetch('https://graphql.anilist.co', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, signal: AbortSignal.timeout(10000),
+        body: JSON.stringify({ query: 'query ($search: String) { Page(perPage: 8) { media(search: $search, type: ANIME) { id idMal title { romaji english } episodes } } }', variables: { search: query } }),
+      });
       if (!upstream.ok) return Response.json({ error: "Anime lookup unavailable" }, { status: 502 });
-      const result = await upstream.json() as { data?: { mal_id: number; title: string; title_english?: string | null; episodes?: number | null }[] };
-      return Response.json({ matches: (result.data ?? []).map(item => ({ id: item.mal_id, title: item.title_english ? `${item.title_english} · ${item.title}` : item.title, episodes: item.episodes ?? null })) }, { headers: { "cache-control": "public, max-age=300" } });
+      const result = await upstream.json() as { data?: { Page?: { media?: { id: number; idMal: number | null; title: { romaji: string; english?: string | null }; episodes: number | null }[] } } };
+      return Response.json({ matches: (result.data?.Page?.media ?? []).filter(item => item.idMal && item.idMal > 0).map(item => ({ id: item.idMal, anilistId: item.id, title: item.title.english && item.title.english !== item.title.romaji ? `${item.title.english} · ${item.title.romaji}` : item.title.romaji, episodes: item.episodes ?? null })) }, { headers: { "cache-control": "public, max-age=300" } });
     } catch { return Response.json({ error: "Anime lookup unavailable" }, { status: 502 }); }
   }
 

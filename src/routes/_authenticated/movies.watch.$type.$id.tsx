@@ -109,6 +109,8 @@ function Watch() {
   useEffect(() => {
     setAnilistId(null);
     if (!animeId) return;
+    const knownId = animeMatches.find(match => match.id === animeId)?.anilistId;
+    if (knownId) { setAnilistId(knownId); return; }
     let cancelled = false;
     fetch(`/api/movies?animeMal=${animeId}&token=guest`).then(response => response.json() as Promise<{ anilistId: number | null }>).then(result => { if (!cancelled) setAnilistId(result.anilistId); }).catch(() => {});
     return () => { cancelled = true; };

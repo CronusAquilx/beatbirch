@@ -1,4 +1,4 @@
-export type AnimeMatch = { id: number; title: string; episodes: number | null };
+export type AnimeMatch = { id: number; anilistId?: number; title: string; episodes: number | null };
 
 /** VidLink's documented anime API uses MAL IDs, not TMDB IDs. No fallback to sub. */
 export function animeVoiceUrl(malId: number, episode: number, voice: 'en' | 'ja'): string {
