@@ -183,7 +183,7 @@ export function setPrefs(p: Partial<Prefs>) {
   const next = activeLayout(state);
   const nextLook = appearances[next] ?? initialAppearance(DEFAULT_PREFS);
   state = { ...state, ...nextLook };
-  localStorage.setItem(KEY, JSON.stringify(state));
+  localStorage.setItem(KEY, JSON.stringify(state, (_key, value) => typeof value === "string" && value.startsWith("blob:") ? "" : value));
   apply();
   subs.forEach((f) => f());
 }
