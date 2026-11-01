@@ -201,7 +201,8 @@ export function MusicView() {
             <div className="min-w-0 flex-1">
               <button onClick={() => play(list, i)} className={cn("block max-w-full truncate text-left text-sm font-medium", on && "text-primary")}>{t.title}</button>
               <div className="truncate text-xs text-muted-foreground">
-                <button onClick={() => openArtist(t.artistId)} className="hover:underline">{t.artist}</button>
+                <span className="mr-1.5 rounded border px-1 py-px text-[10px] uppercase tracking-wide">{t.source === "piped" ? "Piped" : "Deezer"}</span>
+                {t.artistId ? <button onClick={() => openArtist(t.artistId)} className="hover:underline">{t.artist}</button> : <span>{t.artist}</span>}
                 {t.album && <> · <button onClick={() => openAlbum(t.albumId)} className="hover:underline">{t.album}</button></>}
               </div>
             </div>
@@ -333,7 +334,7 @@ export function MusicView() {
           {!loading && view && (view.kind === "search" || view.kind === "genre") && <>
             {view.kind === "genre"
               ? <Hero label="Genre" title={view.title} sub={`Top ${view.tracks.length} songs right now`} tracks={view.tracks} art={view.albums[0]?.art} />
-              : <h1 className="font-display text-3xl">{view.title}</h1>}
+              : <><h1 className="font-display text-3xl">{view.title}</h1>{(view as any).pipedDown && <p role="status" className="mt-1 text-sm text-destructive">Piped is offline right now (all servers down) — showing other results.</p>}</>}
             {view.artists.length > 0 && <><H>Artists</H><Row>{view.artists.map((a) => <Card key={a.id} round art={a.art} title={a.name} onClick={() => openArtist(a.id)} />)}</Row></>}
             <H>Songs</H><Tracks list={view.tracks} />
             {view.playlists && view.playlists.length > 0 && <><H>Playlists</H><Row>{view.playlists.map((p) => <Card key={p.id} art={p.art} title={p.title} sub={`${p.count} songs`} onClick={() => openPlaylist(p.id)} />)}</Row></>}

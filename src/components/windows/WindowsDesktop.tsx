@@ -1,3 +1,4 @@
+import { AccountOnly } from "@/components/astra/SignInRequired";
 import { signOutAll } from "@/lib/auth";
 import { lazy, Suspense, useEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import { Rnd } from "react-rnd";
@@ -91,9 +92,9 @@ export function WindowsDesktop({ children, desktopOnly = false }: { children?: R
       case "movies": return <MoviesView/>;
       case "games": return <GamesView/>;
       case "web": return <WebView/>;
-      case "chat": return <ChatView/>;
-      case "memory": return <MemoryView/>;
-      case "voice": return <VoiceView/>;
+      case "chat": return <AccountOnly><ChatView/></AccountOnly>;
+      case "memory": return <AccountOnly><MemoryView/></AccountOnly>;
+      case "voice": return <AccountOnly><VoiceView/></AccountOnly>;
       case "settings": return <SettingsView/>;
       case "social": return <div className="h-full overflow-auto p-4"><SocialHub/></div>;
       case "route": return children;

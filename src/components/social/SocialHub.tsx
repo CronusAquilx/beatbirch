@@ -1,3 +1,4 @@
+import { AccountOnly } from "@/components/astra/SignInRequired";
 import { useEffect, useState } from "react";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -9,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
-export function SocialHub({ initialTab = "friends", sharedTitle, sharedLink }: { initialTab?: string; sharedTitle?: string; sharedLink?: string }) {
+export function SocialHub(props: Parameters<typeof SocialHubInner>[0]) { return <AccountOnly><SocialHubInner {...props}/></AccountOnly>; }
+function SocialHubInner({ initialTab = "friends", sharedTitle, sharedLink }: { initialTab?: string; sharedTitle?: string; sharedLink?: string }) {
   const { data: d } = useSuspenseQuery(socialOptions); const action = useSocialAction(); const qc = useQueryClient();
   const [tab, setTab] = useState(initialTab); const [handle, setHandle] = useState(d.profile?.handle ?? "");
   const [find, setFind] = useState(""); const [message, setMessage] = useState(sharedTitle ? `Let's check out ${sharedTitle}` : "");
