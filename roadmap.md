@@ -1,10 +1,11 @@
 # Birchbeat import roadmap
 
 ## Current request — personalization and widgets
-- [ ] Add a Switch-inspired app layout to welcome and settings, preserving existing shells.
-- [ ] Expose private wallpaper uploads and a custom accent picker independently for each layout.
-- [ ] Add desktop weather, per-account local notes and shared-player music widgets; guests keep notes only in memory.
-- [ ] Run focused regression tests and verify the personalization flow without provider playback checks.
+- [x] Add a Switch-inspired app layout to welcome and settings, preserving existing shells.
+- [x] Expose private wallpaper uploads and a custom accent picker independently for each layout.
+- [x] Add desktop weather, per-account local notes and shared-player music widgets; guests keep notes only in memory.
+- [x] 21 focused tests pass; guest browser flow verified Switch navigation, uploaded image preview, custom color, live Chicago weather and unsaved notes; phone view has no horizontal overflow or page errors.
+- [ ] Verify signed-in private wallpaper upload and note readback — no auth account matches the requesting user; requires preview sign-in. Provider playback remains user-tested.
 
 ## Current request — Nezha and Anikoto
 - [x] Netflix's official Nezha page lists English audio; Anikoto has dub entries but no documented embed API, and its real Nezha search returns Not Found.

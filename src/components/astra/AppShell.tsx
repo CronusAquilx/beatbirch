@@ -76,10 +76,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const look = getAppearance(prefs);
   useEffect(() => {
     const f = prefs.focus;
-    if (prefs.console !== "off" || !f || f === "all") return;
+    if (prefs.layout === "switch" || prefs.console !== "off" || !f || f === "all") return;
     const sec = /^\/(chat|voice|memory)/.test(path) ? "ai" : /^\/web/.test(path) ? "web" : /^\/movies/.test(path) ? "movies" : /^\/music/.test(path) ? "music" : /^\/games/.test(path) ? "games" : /^\/home/.test(path) ? "home" : null;
     if (sec && sec !== f) navigate({ to: ({ ai: "/chat", web: "/web", movies: "/movies", music: "/music", games: "/games" } as const)[f], replace: true });
-  }, [prefs.focus, prefs.console, path, navigate]);
+  }, [prefs.focus, prefs.console, prefs.layout, path, navigate]);
 
   if (prefs.layout === "switch") return <SwitchShell>{children}</SwitchShell>;
   return (
