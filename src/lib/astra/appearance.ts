@@ -1,9 +1,9 @@
 import type { Prefs } from "./prefs";
 import type { DesktopWidget } from "./widget-layout";
 
-export const LAYOUT_NAMES = { sony: "PlayStation / PS5", series: "Xbox Series X", classic: "Classic", launcher: "Launcher", windows: "Windows", switch: "Switch" } as const;
+export const LAYOUT_NAMES = { sony: "PlayStation / PS5", series: "Xbox Series X", wii: "Wii", neutral: "Neutral", classic: "Classic", launcher: "Launcher", windows: "Windows", switch: "Switch" } as const;
 export type AppearanceLayout = keyof typeof LAYOUT_NAMES;
-export const VISIBLE_LAYOUTS: AppearanceLayout[] = ["windows", "switch", "sony", "series"];
+export const VISIBLE_LAYOUTS: AppearanceLayout[] = ["windows", "switch", "sony", "series", "wii", "neutral"];
 export type AppearanceProfile = Pick<Prefs, "palette" | "accent" | "fontScale" | "radius" | "density" | "background" | "reduceMotion" | "showClock" | "consoleBg" | "consoleCustomBg" | "customBg" | "customBgDim"> & {
   mode: "dark" | "light";
   tileSize: "small" | "standard" | "large";
@@ -22,7 +22,7 @@ export type AppearanceProfile = Pick<Prefs, "palette" | "accent" | "fontScale" |
 };
 export type AppearanceProfiles = Partial<Record<AppearanceLayout, AppearanceProfile>>;
 export function activeLayout(p: Pick<Prefs, "console" | "layout">): AppearanceLayout {
-  return p.console === "sony" || p.console === "series" ? p.console : p.layout;
+  return p.console !== "off" && p.console !== "classic" ? p.console : p.layout;
 }
 export function initialAppearance(p: Prefs, mode: "dark" | "light" = "dark"): AppearanceProfile {
   return { palette: p.palette, accent: p.accent, fontScale: p.fontScale, radius: p.radius, density: p.density, background: p.background, reduceMotion: p.reduceMotion, showClock: p.showClock, consoleBg: p.consoleBg, consoleCustomBg: p.consoleCustomBg, customBg: p.customBg, customBgDim: p.customBgDim, mode, tileSize: "standard", artwork: true, sidebarWidth: "standard", wallpaperMotion: "off", particles: "off", particleDensity: "subtle", appTransparency: "solid", clockFont: "clean", liveWallpaper: "off", customAccent: "", widgets: { weather: true, notes: true, music: true } };

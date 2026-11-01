@@ -1,9 +1,9 @@
 import { Accessibility, Box, Database, Gamepad2, Globe, LogOut, Monitor, Sparkles, User, Users, Volume2, type LucideIcon } from "lucide-react";
 import { setPrefs, type Prefs } from "@/lib/astra/prefs";
 
-export type SkinId = "sony" | "series" | "classic";
-export const SKINS: SkinId[] = ["sony", "series", "classic"];
-export const SKIN_NAME: Record<SkinId, string> = { sony: "Sony Console", series: "Xbox Series", classic: "Xbox Classic" };
+export type SkinId = "sony" | "series" | "classic" | "wii" | "neutral";
+export const SKINS: SkinId[] = ["sony", "series", "wii", "neutral", "classic"];
+export const SKIN_NAME: Record<SkinId, string> = { sony: "PlayStation / PS5", series: "Xbox Series X", classic: "Xbox Classic", wii: "Wii", neutral: "Neutral" };
 export const resolveSkin = (c: Prefs["console"]): SkinId => (c === "off" ? "sony" : c);
 
 export type SettingId = "guide" | "accessibility" | "network" | "users" | "family" | "system" | "storage" | "sound" | "screen" | "skin" | "exit";

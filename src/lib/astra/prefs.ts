@@ -4,7 +4,7 @@ import { activeLayout, initialAppearance, updateAppearance, type AppearanceLayou
 export type Prefs = {
   appearances: AppearanceProfiles;
   layout: "classic" | "launcher" | "windows" | "switch";
-  console: "off" | "sony" | "series" | "classic";
+  console: "off" | "sony" | "series" | "classic" | "wii" | "neutral";
   consoleSetup: boolean;
   consoleBg: "landscape" | "focused" | "custom";
   consoleCustomBg: string;
