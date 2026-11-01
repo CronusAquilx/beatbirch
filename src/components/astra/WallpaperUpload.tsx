@@ -24,7 +24,7 @@ export function WallpaperUpload({ layout }: { layout: AppearanceLayout }) {
         if (linkError || !data) throw linkError ?? new Error("Couldn't open the image.");
         url = data.signedUrl;
       }
-      setAppearance(layout, layout === "sony" || layout === "series" ? { consoleCustomBg: url, consoleBg: "custom", artwork: true } : { customBg: url, artwork: true, wallpaperType: file.type.startsWith("video/") ? "video" : "image" });
+      setAppearance(layout, layout === "sony" || layout === "series" || layout === "wii" || layout === "neutral" ? { consoleCustomBg: url, consoleBg: "custom", artwork: true } : { customBg: url, artwork: true, wallpaperType: file.type.startsWith("video/") ? "video" : "image" });
     } catch { setError("Couldn't upload the wallpaper. Please try again."); } finally { setBusy(false); }
   }
   return <div><input ref={input} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif,video/mp4,video/webm" aria-label="Upload wallpaper image" className="hidden" disabled={busy} onChange={e => { const file = e.target.files?.[0]; if (file) void upload(file); e.target.value = ""; }}/><Button variant="secondary" disabled={busy} onClick={() => input.current?.click()}><Upload/>{busy ? "Uploading…" : "Upload wallpaper"}</Button>{guest && <p className="mt-2 text-xs text-muted-foreground">This visit only</p>}{error && <p role="alert" className="mt-2 text-xs text-destructive">{error}</p>}</div>;

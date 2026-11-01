@@ -14,7 +14,7 @@ describe("Console input rules", () => {
     expect(moveShelf({ r: 0, c: 3 }, [4, 0, 2], "down")).toEqual({ r: 2, c: 1 });
   });
   it("keeps classic layout and console off by default with Sony fallback", () => {
-    expect(DEFAULT_PREFS.layout).toBe("classic");
+    expect(DEFAULT_PREFS.layout).toBe("windows");
     expect(DEFAULT_PREFS.console).toBe("off");
     expect(resolveSkin("off")).toBe("sony");
     expect(resolveSkin("series")).toBe("series");

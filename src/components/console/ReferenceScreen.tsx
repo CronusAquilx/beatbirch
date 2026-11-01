@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ChevronLeft, ChevronRight, Film, Gamepad2, Globe, Heart, Home, LayoutGrid, Library, Mail, Music, Paintbrush, Play, Search, Settings, ShoppingBag, Users, Wifi } from "lucide-react";
+import { ChevronLeft, ChevronRight, Film, Gamepad2, Heart, Home, LayoutGrid, Library, Mail, Music, Paintbrush, Play, Search, Settings, ShoppingBag, Users, Wifi } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppIcon } from "@/components/astra/AppIcon";

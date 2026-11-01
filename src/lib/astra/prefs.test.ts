@@ -2,6 +2,18 @@ import { describe, expect, it } from "vitest";
 import { setPrefs, setAppearance, resetPrefs } from "./prefs";
 
 describe("persisted appearance switching", () => {
+  it("restores Wii and Neutral appearances independently", () => {
+    resetPrefs(); setPrefs({ console: "wii" });
+    setAppearance("wii", { customAccent: "#12abcd", consoleCustomBg: "https://example.org/wii.jpg", consoleBg: "custom" });
+    setPrefs({ console: "neutral" });
+    setAppearance("neutral", { customAccent: "#ab1256" });
+    setPrefs({ console: "wii" });
+    expect(document.documentElement.dataset["appearanceLayout"]).toBe("wii");
+    expect(document.documentElement.style.getPropertyValue("--star")).toBe("#12abcd");
+    const saved = JSON.parse(localStorage.getItem("astra-prefs") || "{}");
+    expect(saved.consoleCustomBg).toBe("https://example.org/wii.jpg");
+    expect(saved.appearances.neutral.customAccent).toBe("#ab1256");
+  });
   it("never persists temporary guest wallpaper URLs", () => {
     resetPrefs(); setPrefs({ console: "off", layout: "classic" });
     setAppearance("classic", { customBg: "blob:http://localhost/guest-wallpaper" });
