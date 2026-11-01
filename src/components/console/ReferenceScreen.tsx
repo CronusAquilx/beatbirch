@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ChevronLeft, ChevronRight, Film, Gamepad2, Globe, Heart, Home, LayoutGrid, Library, Mail, Music, Paintbrush, Play, Search, Settings, ShoppingBag, Users, Wifi } from "lucide-react";
+import { ChevronLeft, ChevronRight, Film, Gamepad2, Heart, Home, LayoutGrid, Library, Mail, Music, Paintbrush, Play, Search, Settings, ShoppingBag, Users, Wifi } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { AppIcon } from "@/components/astra/AppIcon";
 import { APPS, gameById, type ConsoleGame } from "@/lib/console/catalog";
@@ -17,7 +18,11 @@ import { XboxGuide } from "./xbox/XboxGuide";
 import type { ConsoleScreenName } from "./ConsoleScreen";
 
 export function ReferenceScreen({ screen, skin }: { screen: ConsoleScreenName; skin: "sony" | "series" | "neutral" | "wii" }) {
-  const { go, lib, catalog, name, initial, clock, p, user } = useConsoleCtx();
+  const { go: navigate, lib, catalog, name, initial, clock, p, user } = useConsoleCtx();
+  const go = (path: string) => {
+    if (!user && path === "/console/social") { toast("Sign in with an account to use this feature"); return; }
+    void navigate(path);
+  };
   const player = usePlayer(); const { send } = useVisit();
   const [selected, setSelected] = useState(0); const [details, setDetails] = useState<ConsoleGame | null>(null);
   const [query, setQuery] = useState(""); const [filter, setFilter] = useState("all"); const [sort, setSort] = useState("recent");

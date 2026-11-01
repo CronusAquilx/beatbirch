@@ -5,7 +5,6 @@ import { SonyStore } from "./sony/SonyStore";
 import { SonyLibrary } from "./sony/SonyLibrary";
 import { SonySettings } from "./sony/SonySettings";
 import { SonyProfile } from "./sony/SonyProfile";
-import { XboxScreen } from "./xbox/XboxScreen";
 import { ReferenceScreen } from "./ReferenceScreen";
 
 export type ConsoleScreenName = "home" | "media" | "apps" | "store" | "library" | "settings" | "profile";
