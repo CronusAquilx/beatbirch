@@ -4,7 +4,6 @@ import { lazy, Suspense, useEffect, useReducer, useRef, useState, type ReactNode
 import { Rnd } from "react-rnd";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Bot, Brain, Film, Gamepad2, Globe, Home, LayoutGrid, Maximize2, Mic, Minus, Monitor, Music, PanelLeft, Plus, Power, Search, Settings, Square, Users, Volume2, Wifi, X, ExternalLink, ChevronRight } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
