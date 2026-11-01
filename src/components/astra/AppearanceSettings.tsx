@@ -24,7 +24,7 @@ export function AppearanceSettings() {
   const [layout, setLayout] = useState<AppearanceLayout>(activeLayout(p));
   const look = getAppearance(p, layout);
   const set = (patch: Partial<AppearanceProfile>) => setAppearance(layout, patch);
-  const consoleMode = layout === "sony" || layout === "series";
+  const consoleMode = layout === "sony" || layout === "series" || layout === "wii" || layout === "neutral";
   const [image, setImage] = useState("");
   const [error, setError] = useState("");
   return <div className="appearance-settings text-foreground">

@@ -122,9 +122,11 @@ export function SettingsView() {
                   { v: "off", label: "Off", sub: "Keep your existing app layout" },
                   { v: "sony", label: "PlayStation / PS5", sub: "Games and media dashboard" },
                   { v: "series", label: "Xbox Series X", sub: "Games, apps and Guide" },
+                  { v: "wii", label: "Wii", sub: "Channels and a bright console menu" },
+                  { v: "neutral", label: "Neutral", sub: "Black sidebar and recent apps" },
                 ]}
               />
-              <Row title="Open Console Mode"><Button size="sm" onClick={() => { set({ console: p.console === "series" ? "series" : "sony", focus: "all" }); navigate({ to: "/console" }); }}>Launch</Button></Row>
+              <Row title="Open Console Mode"><Button size="sm" onClick={() => { set({ console: p.console === "off" ? "sony" : p.console, focus: "all" }); navigate({ to: "/console" }); }}>Launch</Button></Row>
             </Card>
             <Card title="Home screen">
               <Row title="Title"><Input className="w-44" value={p.homeName} onChange={(e) => set({ homeName: e.target.value })} /></Row>
