@@ -43,7 +43,7 @@ export type Prefs = {
 
 export const DEFAULT_PREFS: Prefs = {
   appearances: {},
-  layout: "classic",
+  layout: "windows",
   console: "off",
   consoleSetup: false,
   consoleBg: "landscape",
@@ -129,6 +129,11 @@ function load() {
     const mode = localStorage.getItem("astra-theme") === "light" ? "light" : "dark";
     const legacy = initialAppearance(state, mode);
     state.appearances = { classic: legacy, launcher: { ...legacy }, sony: { ...initialAppearance(DEFAULT_PREFS), consoleBg: state.consoleBg, consoleCustomBg: state.consoleCustomBg }, series: { ...initialAppearance(DEFAULT_PREFS), consoleBg: state.consoleBg, consoleCustomBg: state.consoleCustomBg }, ...state.appearances };
+    if (state.layout === "classic" || state.layout === "launcher") {
+      const old = state.appearances[state.layout] ?? legacy;
+      state.appearances.windows = { ...old, ...state.appearances.windows, customBg: old.customBg || state.appearances.windows?.customBg || "" };
+      state.layout = "windows";
+    }
     state = { ...state, ...state.appearances[activeLayout(state)] };
     if (!state.v) { if (state.searchEngine === "astra") state.searchEngine = "google"; state.v = 1; }
   } catch { /* ignore */ }

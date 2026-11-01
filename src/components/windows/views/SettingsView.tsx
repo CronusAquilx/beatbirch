@@ -60,14 +60,14 @@ function Choice<T extends string>({ value, options, onChange }: { value: T; opti
   return (
     <div className="grid gap-2 p-3 sm:grid-cols-2">
       {options.map((o) => (
-        <button
+        <Button variant="ghost"
           key={o.v}
           onClick={() => onChange(o.v)}
           className={cn("rounded-md border px-3 py-2.5 text-left transition", value === o.v ? "border-star bg-accent" : "hover:bg-accent/50")}
         >
           <div className="text-sm font-medium">{o.label}</div>
           {o.sub && <div className="text-xs text-muted-foreground">{o.sub}</div>}
-        </button>
+        </Button>
       ))}
     </div>
   );
@@ -109,8 +109,6 @@ export function SettingsView() {
                 value={p.layout}
                 onChange={(layout) => { set({ layout, console: "off", focus: "all" }); if (layout === "windows") navigate({ to: "/desktop" }); else if (layout === "switch") navigate({ to: "/home" }); }}
                 options={[
-                  { v: "classic", label: "Classic", sub: "Full sidebar with chats list" },
-                  { v: "launcher", label: "Launcher", sub: "Icon rail, address bar & home screen" },
                   { v: "windows", label: "Windows", sub: "Desktop, taskbar and app windows" },
                   { v: "switch", label: "Switch", sub: "Game tiles and a compact app dock" },
                 ]}
