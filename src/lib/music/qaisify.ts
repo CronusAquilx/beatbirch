@@ -13,17 +13,17 @@ export const QAISIFY_ROWS = [
 ];
 
 export function qaisifyTrack(t: Record<string, any>) {
-  return { id: `itunes:${t.trackId}`, title: t.trackName ?? "", artist: t.artistName ?? "", artistId: `itunes:${t.artistId}`,
-    album: t.collectionName ?? "", albumId: `itunes:${t.collectionId}`, art: String(t.artworkUrl100 ?? "").replace(/\d+x\d+bb/, "600x600bb"),
-    duration: Math.round(Number(t.trackTimeMillis ?? 0) / 1000), source: "itunes" as const };
+  return { id: `itunes:${t["trackId"]}`, title: t["trackName"] ?? "", artist: t["artistName"] ?? "", artistId: `itunes:${t["artistId"]}`,
+    album: t["collectionName"] ?? "", albumId: `itunes:${t["collectionId"]}`, art: String(t["artworkUrl100"] ?? "").replace(/\d+x\d+bb/, "600x600bb"),
+    duration: Math.round(Number(t["trackTimeMillis"] ?? 0) / 1000), source: "itunes" as const };
 }
 
 export function playableVideoIds(ids: string[], videos: Record<string, any>[]) {
-  const playable = new Set(videos.filter(v => v.status?.embeddable === true && v.status?.privacyStatus === "public"
-    && (!v.status.uploadStatus || v.status.uploadStatus === "processed")
-    && !v.contentDetails?.regionRestriction?.blocked?.includes("US")
-    && (!v.contentDetails?.regionRestriction?.allowed || v.contentDetails.regionRestriction.allowed.includes("US")))
-    .map(v => v.id));
+  const playable = new Set(videos.filter(v => v["status"]?.embeddable === true && v["status"]?.privacyStatus === "public"
+    && (!v["status"].uploadStatus || v["status"].uploadStatus === "processed")
+    && !v["contentDetails"]?.regionRestriction?.blocked?.includes("US")
+    && (!v["contentDetails"]?.regionRestriction?.allowed || v["contentDetails"].regionRestriction.allowed.includes("US")))
+    .map(v => v["id"]));
   return [...new Set(ids)].filter(id => /^[\w-]{11}$/.test(id) && playable.has(id)).slice(0, 5);
 }
 
