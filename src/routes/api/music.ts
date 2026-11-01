@@ -20,6 +20,21 @@ const appleSearch = (term: string, entity = "song", limit = 25) => itunes(`/sear
 const appleAlbum = (a: any) => ({ id: `itunes:${a.collectionId}`, title: a.collectionName ?? "", artist: a.artistName ?? "", art: String(a.artworkUrl100 ?? "").replace(/\d+x\d+bb/, "600x600bb"), year: String(a.releaseDate ?? "").slice(0, 4) });
 const appleArtist = (a: any) => ({ id: `itunes:${a.artistId}`, name: a.artistName ?? "", art: "" });
 async function youtube(path: string, params: Record<string, string>): Promise<any> {
+  const googleKey = process.env["GOOGLE_API_KEY"];
+  if (googleKey) {
+    const r = await fetch(`https://www.googleapis.com/youtube/v3/${path}?${new URLSearchParams({ ...params, key: googleKey })}`, {
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!r.ok) {
+      const data = await r.json().catch(() => null);
+      const reason = data?.error?.errors?.[0]?.reason;
+      const knownReasons = ["quotaExceeded", "dailyLimitExceeded", "keyInvalid", "accessNotConfigured", "ipRefererBlocked", "forbidden"];
+      const detail = knownReasons.includes(reason) ? `: ${reason}` : "";
+      console.error(`YouTube lookup [${r.status}]${detail}`);
+      throw new Error(`YouTube lookup unavailable (${r.status})${detail}`);
+    }
+    return r.json();
+  }
   const key = process.env["UDC_QAISIFY_YOUTUBE_API_KEY"], gatewayKey = process.env["LOVABLE_API_KEY"];
   if (!key || !gatewayKey) throw new Error("Connect YouTube to restore song playback");
   const r = await fetch(`https://connector-gateway.lovable.dev/udc_qaisify_youtube/${path}?${new URLSearchParams(params)}`, {
