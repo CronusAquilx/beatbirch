@@ -1,5 +1,9 @@
 # Birchbeat import roadmap
 
+## Current request — video-referenced layouts
+- [ ] Identify the appearance and features shown in the four supplied TikTok videos.
+- [ ] Match Basic Launcher, Classic and Windows to the references while preserving other layouts.
+
 ## Current request — account picker and guests
 - [ ] Show layout first on each document, then shared account picker and Add User form across every layout.
 - [ ] Support username/password accounts, optional contact email, and retain existing account compatibility.
