@@ -761,3 +761,57 @@ html[data-artwork="off"] .desktop-quick-apps a { color: var(--foreground); }
   .desktop-search { margin-top: 22px; }
 }
 @media (prefers-reduced-motion: reduce) { .desktop-dock-item { transition: none; } .desktop-dock-item:hover { transform: none; } }
+
+/* Desktop motion and native Store, isolated from gameplay and console skins. */
+.desktop-clock[data-clock-font="rounded"] { font-family: "Outfit", var(--font-sans); }
+.desktop-clock[data-clock-font="serif"] { font-family: var(--font-display); }
+.desktop-clock[data-clock-font="digital"] { font-family: var(--font-mono); }
+.desktop-clock[data-clock-font="digital"] h2 { font-size: 48px; }
+.desktop-clock[data-clock-font="serif"] h2 { text-transform: none; font-size: 76px; }
+.reference-home-center { animation: desktop-arrive .55s cubic-bezier(.2,.8,.2,1) both; }
+.desktop-dock { animation: desktop-arrive .45s cubic-bezier(.2,.8,.2,1) both; }
+.desktop-dock-item { transition: transform .28s cubic-bezier(.2,.8,.2,1), background-color .2s ease; transform-origin: center bottom; }
+.desktop-dock-item:hover { transform: translateY(-8px) scale(1.15); }
+.desktop-dock-item:has(+ .desktop-dock-item:hover), .desktop-dock-item:hover + .desktop-dock-item { transform: translateY(-3px) scale(1.05); }
+.windows-window { animation: desktop-window-open .24s cubic-bezier(.2,.8,.2,1) both; }
+.windows-window.is-closing { animation: desktop-window-close .18s ease-in both; pointer-events: none; }
+.windows-start, .windows-desktop [aria-label="Quick settings"], .windows-desktop [aria-label="Task view"] { animation: desktop-arrive .25s cubic-bezier(.2,.8,.2,1) both; }
+html[data-wallpaper-motion="drift"] .reference-wallpaper { animation: wallpaper-drift 32s ease-in-out infinite alternate; }
+html[data-wallpaper-motion="zoom"] .reference-wallpaper { animation: wallpaper-zoom 24s ease-in-out infinite alternate; }
+.desktop-home-shell .wallpaper-effects { z-index: 0; }
+.desktop-store { display: flex; height: 100%; min-height: 0; flex-direction: column; background: var(--background); color: var(--foreground); }
+.store-header { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid var(--border); background: var(--card); }
+.store-header > div:last-child { width: min(340px, 100%); }
+.store-categories { display: flex; gap: 6px; padding: 12px 24px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+.store-categories button { flex-shrink: 0; font-size: 12px; }
+.store-content { flex: 1; min-height: 0; padding: 22px 24px; overflow-y: auto; }
+.store-feature { position: relative; height: 250px; overflow: hidden; border-radius: 8px; }
+.store-feature > img { width: 100%; height: 100%; object-fit: cover; }
+.store-feature::after { content: ""; position: absolute; inset: 0; background: var(--console-shade); }
+.store-feature > div { position: absolute; z-index: 1; inset: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: 28px; color: var(--desktop-ink); }
+.store-feature span { font-size: 10px; }
+.store-feature h1 { font-size: 32px; font-weight: 650; margin-top: 10px; }
+.store-feature p { margin-block: 10px 20px; font-size: 13px; }
+.store-app-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(265px,100%),1fr)); gap: 14px; }
+.store-app { display: grid; grid-template-columns: 56px minmax(0,1fr) auto; align-items: center; gap: 14px; padding: 20px 16px; border: 1px solid var(--border); background: var(--card); border-radius: 8px; transition: border-color .2s, transform .2s; }
+.store-app:hover { border-color: var(--star); transform: translateY(-2px); }
+.store-app h3 { font-size: 14px; font-weight: 600; }
+.store-icon { width: 50px; height: 50px; }
+.store-icon svg { width: 31px; height: 31px; }
+@keyframes desktop-arrive { from { opacity: 0; translate: 0 12px; } to { opacity: 1; translate: 0 0; } }
+@keyframes desktop-window-open { from { opacity: 0; scale: .97; translate: 0 10px; } to { opacity: 1; scale: 1; translate: 0 0; } }
+@keyframes desktop-window-close { to { opacity: 0; scale: .96; translate: 0 12px; } }
+@media (max-width: 639px) {
+  .desktop-dock { gap: 1px; padding-inline: 4px; }
+  .desktop-dock-item { width: 29px; }
+  .desktop-clock[data-clock-font="digital"] h2 { font-size: 30px; }
+  .desktop-clock[data-clock-font="serif"] h2 { font-size: 48px; }
+  .windows-desktop-center .desktop-clock[data-clock-font="digital"] h2 { font-size: 22px; }
+  .store-header { padding: 14px; gap: 12px; }
+  .store-categories { padding: 10px; }
+  .store-content { padding: 14px; }
+  .store-feature { height: 230px; }
+  .store-feature > div { padding: 20px; }
+  .store-feature h1 { font-size: 27px; }
+}
+@media (prefers-reduced-motion: reduce) { .reference-wallpaper, .reference-home-center, .desktop-dock, .windows-window, .windows-start, .windows-desktop [aria-label="Quick settings"], .windows-desktop [aria-label="Task view"] { animation: none !important; } .desktop-dock-item:hover, .desktop-dock-item:has(+ .desktop-dock-item:hover), .desktop-dock-item:hover + .desktop-dock-item, .store-app:hover { transform: none; } }
