@@ -64,7 +64,7 @@ async function resolveAudio(server: string, w: Want, preview: string): Promise<s
   if (server === "deezer") return /^https:\/\/[a-z0-9-]+\.dzcdn\.net\//i.test(preview) ? preview : null;
   if (server === "piped") {
     const ranked = (await pipedSearch(q)).map((x: any) => ({ x, s: matchScore(x.title, x.artist, x.duration, w) })).sort((a, b) => b.s - a.s);
-    const t = ranked[0]?.s >= 5 ? ranked[0].x : null;
+    const t = (ranked[0]?.s ?? 0) >= 5 ? ranked[0]!.x : null;
     if (!t) return null;
     const raw = await pipedStream(t.id.slice(6));
     return raw ? raw : null;
