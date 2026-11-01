@@ -10,6 +10,8 @@ import type { Prefs } from "@/lib/astra/prefs";
 export type Track = { id: string; title: string; artist: string; artistId: string; album: string; albumId: string; art: string; duration: number; preview?: string; source?: "piped" };
 
 export const SERVERS = [
+  { id: "auto", name: "Best available (fast, no ads)" },
+  { id: "saavn", name: "JioSaavn (full songs, no ads)" },
   { id: "piped", name: "Piped (no ads)" },
   { id: "soundcloud", name: "SoundCloud (no ads)" },
   { id: "youtube", name: "YouTube (may have ads)" },
@@ -19,7 +21,7 @@ export const SERVERS = [
 export type Server = (typeof SERVERS)[number]["id"];
 
 type State = { queue: Track[]; cur: number; status: string; paused: boolean; time: number; dur: number; server: Server; mode: "audio" | "video" | null; volume: number };
-let state: State = { queue: [], cur: -1, status: "", paused: true, time: 0, dur: 0, server: "piped", mode: null, volume: 1 };
+let state: State = { queue: [], cur: -1, status: "", paused: true, time: 0, dur: 0, server: "auto", mode: null, volume: 1 };
 const subs = new Set<() => void>();
 const set = (p: Partial<State>) => { state = { ...state, ...p }; subs.forEach((f) => f()); };
 
@@ -65,10 +67,10 @@ function ensure() {
     Object.assign(frame.style, { position: "fixed", width: "1px", height: "1px", bottom: "0", right: "0", opacity: "0", pointerEvents: "none", border: "0" });
     document.body.appendChild(frame);
   }
-  try { const s = localStorage.getItem("bb-music-server3"); if (s && SERVERS.some((x) => x.id === s)) state.server = s as Server; } catch { /* ignore */ }
+  try { const s = localStorage.getItem("bb-music-server4"); if (s && SERVERS.some((x) => x.id === s)) state.server = s as Server; } catch { /* ignore */ }
 }
 
-export function setServer(s: Server) { localStorage.setItem("bb-music-server3", s); set({ server: s }); }
+export function setServer(s: Server) { localStorage.setItem("bb-music-server4", s); set({ server: s }); }
 export function setVolume(v: number) { ensure(); if (audio) audio.volume = v; set({ volume: v }); }
 
 let prefsRef: Prefs | null = null;
@@ -83,39 +85,48 @@ export async function playList(list: Track[], i: number) {
   audio.pause(); audio.removeAttribute("src");
   frame.src = "about:blank";
   await musicToken();
-  // Ad-free audio sources first; YouTube (ads) only as a last resort unless picked.
-  const rest = (["piped", "soundcloud", "audius", "youtube", "deezer"] as Server[]).filter((x) => x !== state.server);
-  const order = [state.server, ...rest];
+  const playAudio = async (url: string, label: string) => {
+    audio!.src = `/api/music?op=audio&u=${encodeURIComponent(url)}&token=${encodeURIComponent(token)}`;
+    await audio!.play();
+    set({ mode: "audio", status: label });
+  };
   if (t.id.startsWith("piped:")) {
     try {
-      const r = await musicApi<{ url: string | null; down?: boolean }>({ op: "piped-stream", id: t.id.slice(6) });
+      const r = await musicApi<{ url: string | null }>({ op: "piped-stream", id: t.id.slice(6) });
       if (my !== playId) return;
-      if (r.url) {
-        audio.src = `/api/music?op=audio&u=${encodeURIComponent(r.url)}&token=${encodeURIComponent(token)}`;
-        await audio.play();
-        set({ mode: "audio", status: "" });
-        return;
-      }
-      if (r.down) set({ status: "Piped servers are down — trying other sources…" });
-    } catch { /* fall back to the other sources */ }
+      if (r.url) { await playAudio(r.url, ""); return; }
+    } catch { /* fall through to the fast lookup */ }
   }
+  const want = { q: `${t.artist} ${t.title}`, title: t.title, artist: t.artist, duration: String(t.duration || 0), preview: t.preview ?? "" };
+  // One request asks every ad-free full-song source at once; first real match wins.
+  if (state.server !== "youtube") {
+    try {
+      const sv = state.server === "auto" ? "auto" : state.server;
+      const r = await musicApi<{ url: string | null; server?: string }>({ op: "resolve", server: sv, ...want });
+      if (my !== playId) return;
+      if (r.url) { await playAudio(r.url, sv === "deezer" ? "30-second preview" : ""); return; }
+      if (sv !== "auto") {
+        const r2 = await musicApi<{ url: string | null }>({ op: "resolve", server: "auto", ...want });
+        if (my !== playId) return;
+        if (r2.url) { await playAudio(r2.url, ""); return; }
+      }
+    } catch { /* fall back below */ }
+  }
+  const order: Server[] = ["youtube", "deezer"];
   for (const sv of order) {
     if (my !== playId) return;
     try {
       if (sv === "youtube") {
         const { ids } = await musicApi<{ ids: string[] }>({ op: "video", q: `${t.artist} - ${t.title} official audio`, title: t.title, artist: t.artist });
         if (!ids[0] || my !== playId) continue;
-        const src = `https://www.youtube.com/embed/${ids[0]}?autoplay=1&playsinline=1&rel=0`;
+        const src = `https://www.youtube-nocookie.com/embed/${ids[0]}?autoplay=1&playsinline=1&rel=0`;
         if (prefsRef) await openProxied(frame, src, prefsRef); else frame.src = src;
-        set({ status: sv === state.server ? "" : "Playing from YouTube", mode: "video", paused: false });
+        set({ status: state.server === "youtube" ? "" : "No ad-free copy found — playing from YouTube", mode: "video", paused: false });
         return;
       }
-      const { url } = await musicApi<{ url: string | null }>({ op: "resolve", server: sv, q: `${t.artist} ${t.title}`, title: t.title, artist: t.artist, duration: String(t.duration || 0), preview: t.preview ?? "" });
+      const { url } = await musicApi<{ url: string | null }>({ op: "resolve", server: sv, ...want });
       if (!url || my !== playId) continue;
-      audio.src = `/api/music?op=audio&u=${encodeURIComponent(url)}&token=${encodeURIComponent(token)}`;
-      await audio.play();
-      const name = SERVERS.find((x) => x.id === sv)!.name;
-      set({ mode: "audio", status: sv === "deezer" ? "30-second preview" : sv === state.server ? "" : `Playing from ${name}` });
+      await playAudio(url, "30-second preview");
       return;
     } catch { /* try next */ }
   }
