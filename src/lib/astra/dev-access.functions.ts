@@ -2,21 +2,27 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 const DEV_ACCOUNTS = { qais: "qaisdev@gmail.org", chance: "chancedev@gmail.com" } as const;
+const pinOk = (code: string) => code === (process.env["ADMIN_ACCESS_CODE"] || "0307");
+const slow = () => new Promise((r) => setTimeout(r, 800)); // slows down guessing
 
-/** Admin-mode sign-in: checks the access code server-side and returns a one-time login token for a dev account. */
+/** Checks the hidden developer panel PIN on the server. */
+export const checkDevPin = createServerFn({ method: "POST" })
+  .inputValidator((d) => z.object({ code: z.string().max(32) }).parse(d))
+  .handler(async ({ data }) => { await slow(); return { ok: pinOk(data.code) }; });
+
+/** Hidden developer sign-in: re-checks the PIN server-side and returns a one-time login token for a dev account. */
 export const devSignIn = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ code: z.string().max(32), account: z.enum(["qais", "chance"]) }).parse(d))
   .handler(async ({ data }) => {
-    await new Promise((r) => setTimeout(r, 800)); // slow down guessing
-    const expected = process.env["ADMIN_ACCESS_CODE"];
-    if (!expected || data.code !== expected) return { ok: false as const, error: "Wrong code" };
+    await slow();
+    if (!pinOk(data.code)) return { ok: false as const, error: "Wrong code" };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const email = DEV_ACCOUNTS[data.account];
     const { data: list } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
     let id = list?.users.find((u) => u.email?.toLowerCase() === email)?.id;
     if (!id) {
       const password = crypto.randomUUID() + crypto.randomUUID();
-      const { data: created, error } = await supabaseAdmin.auth.admin.createUser({ email, password, email_confirm: true });
+      const { data: created, error } = await supabaseAdmin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { name: data.account } });
       if (error || !created.user) return { ok: false as const, error: "Couldn't create the dev account" };
       id = created.user.id;
     }
