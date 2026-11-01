@@ -28,6 +28,8 @@ async function authorizedUser(request: Request, url: URL): Promise<boolean> {
     url.searchParams.get("token") ||
     "";
   if (!token) return false;
+  // Guests browse the public catalog without an account; nothing is saved for them.
+  if (token === "guest") return true;
   const key = process.env["SUPABASE_PUBLISHABLE_KEY"]!;
   const supabase = createClient(process.env["SUPABASE_URL"]!, key, {
     auth: { persistSession: false, autoRefreshToken: false },

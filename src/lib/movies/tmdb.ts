@@ -6,13 +6,13 @@ const RELAY = '/api/movies';
 
 // The session isn't always in localStorage (the editor preview brokers it
 // elsewhere), so track the token from the auth client itself.
-let cachedToken = '';
+let cachedToken = 'guest';
 if (typeof window !== 'undefined') {
   supabase.auth.getSession().then(({ data }) => {
-    cachedToken = data.session?.access_token ?? '';
+    cachedToken = data.session?.access_token ?? 'guest';
   });
   supabase.auth.onAuthStateChange((_e, session) => {
-    cachedToken = session?.access_token ?? '';
+    cachedToken = session?.access_token ?? 'guest';
   });
 }
 
@@ -22,7 +22,7 @@ export const relayToken = (): string => cachedToken;
 /** Fresh access token for fetch calls. */
 const freshToken = async (): Promise<string> => {
   const { data } = await supabase.auth.getSession();
-  cachedToken = data.session?.access_token ?? cachedToken;
+  cachedToken = data.session?.access_token ?? 'guest';
   return cachedToken;
 };
 

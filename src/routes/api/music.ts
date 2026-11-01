@@ -8,6 +8,7 @@ const DZ = "https://api.deezer.com";
 async function authed(request: Request, url: URL) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || url.searchParams.get("token") || "";
   if (!token) return false;
+  if (token === "guest") return true; // guests use the public catalog; nothing saves
   return Boolean(await authenticateRequest(new Request(request.url, { headers: { authorization: `Bearer ${token}` } })));
 }
 

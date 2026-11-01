@@ -29,7 +29,7 @@ let playId = 0;
 
 export async function musicToken() {
   const { data } = await supabase.auth.getSession();
-  token = data.session?.access_token ?? "";
+  token = data.session?.access_token ?? "guest";
   return token;
 }
 export const artUrl = (src: string) => (src && token ? `/api/music?op=art&src=${encodeURIComponent(src)}&token=${encodeURIComponent(token)}` : "");
