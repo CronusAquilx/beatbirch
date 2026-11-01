@@ -8,6 +8,8 @@ import { RoomButton } from "@/components/RoomButton";
 import { getRoom, myRoomId, setRoomState, useRoom } from "@/lib/rooms";
 import { artUrl, downloadUrl, getAudio, musicApi, musicToken, playList, SERVERS, setServer, usePlayer, type Server, type Track } from "@/lib/music/player";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
+import { QAISIFY_ROWS } from "@/lib/music/qaisify";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
@@ -30,7 +32,10 @@ const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "
 
 export function MusicView() {
   const prefs = usePrefs();
-  const native = prefs.layout === "windows" || prefs.console === "sony" || prefs.console === "series";
+  const { user } = useAuth();
+  const [shelves, setShelves] = useState<{title: string; tracks: Track[]}[]>([]);
+  const [queueOpen, setQueueOpen] = useState(false);
+  const native = true;
   const [section, setSection] = useState<"home" | "library" | "browse">("home");
   const player = usePlayer();
   const [q, setQ] = useState("");
@@ -62,15 +67,16 @@ export function MusicView() {
   const push = (v: View) => { if (view) setStack((s) => [...s, view]); setView(v); };
 
   async function loadMine() {
+    if (!user) { setMine([]); return; }
     const { data } = await supabase.from("playlists").select("id,name,description,tracks").order("updated_at", { ascending: false });
     setMine((data ?? []).map((r) => ({ ...r, tracks: (r.tracks as unknown as Track[]) ?? [] })));
   }
 
   useEffect(() => {
     void musicToken().then(() => force((x) => x + 1));
-    go(async () => ({ kind: "home", title: "Top charts", ...(await musicApi<any>({ op: "home" })) }), false);
-    musicApi<{ genres: Genre[] }>({ op: "genres" }).then((r) => setGenres(r.genres)).catch(() => {});
-    musicApi<{ playlists: Pl[] }>({ op: "charts-playlists" }).then((r) => setFeatured(r.playlists)).catch(() => {});
+    void musicApi<{rows: {title: string; tracks: Track[]}[]}>({ op: "qaisify-home" }).then(r => { setShelves(r.rows); setView({kind: "home", title: "Qaisify", tracks: [], albums: [], artists: []}); setLoading(false); }).catch(e => { setError(e.message); setLoading(false); });
+    setGenres(QAISIFY_ROWS.map((r, i) => ({id: String(i), name: r.title, art: ""})));
+
     void loadMine();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -78,11 +84,11 @@ export function MusicView() {
   const search = (e: React.FormEvent) => {
     e.preventDefault();
     const term = q.trim();
-    if (term) go(async () => ({ kind: "search", title: `Results for "${term}"`, ...(await musicApi<any>({ op: "search", q: term })) }));
+    if (term) go(async () => ({ kind: "search", title: `Results for "${term}"`, ...(await musicApi<any>({ op: "qaisify-search", q: term })) }));
   };
   const openAlbum = (id: string) => go(async () => ({ kind: "album", data: await musicApi<any>({ op: "album", id }) }));
   const openArtist = (id: string) => go(async () => ({ kind: "artist", data: await musicApi<any>({ op: "artist", id }) }));
-  const openGenre = (g: Genre) => go(async () => { const r = await musicApi<any>({ op: "genre", id: g.id }); return { kind: "genre", title: g.name, ...r }; });
+  const openGenre = (g: Genre) => go(async () => ({ kind: "genre", title: g.name, ...(await musicApi<any>({ op: "qaisify-search", q: QAISIFY_ROWS[Number(g.id)]?.term ?? g.name })) }));
   const openPlaylist = (id: string) => go(async () => ({ kind: "playlist", data: await musicApi<any>({ op: "playlist", id }) }));
   const back = () => { const p = stack.at(-1); if (p) { setView(p); setStack((s) => s.slice(0, -1)); } };
 
@@ -112,7 +118,7 @@ export function MusicView() {
   // Playlists
   async function createPlaylist(name: string, tracks: Track[] = [], description: string | null = null) {
     const { data: u } = await supabase.auth.getUser();
-    if (!u.user) return null;
+    if (!u.user) { toast("Sign in with an account to use this feature"); return null; }
     const { data, error: err } = await supabase.from("playlists").insert({ user_id: u.user.id, name, description, tracks: tracks as never }).select("id").single();
     if (err) { toast.error("Couldn't save playlist"); return null; }
     await loadMine();
@@ -128,10 +134,11 @@ export function MusicView() {
     toast.success(`Added to ${pl.name}`);
   }
   async function newPlaylistPrompt(t?: Track) {
+    if (!user) { toast("Sign in with an account to use this feature"); return; }
     const name = window.prompt("Playlist name");
     if (!name?.trim()) return;
-    await createPlaylist(name.trim(), t ? [t] : []);
-    toast.success(`Created ${name.trim()}`);
+    const saved = await createPlaylist(name.trim(), t ? [t] : []);
+    if (saved) toast.success(`Created ${name.trim()}`);
   }
   async function deletePlaylist(id: string) {
     if (!window.confirm("Delete this playlist?")) return;
@@ -142,6 +149,7 @@ export function MusicView() {
 
   async function runAi(e?: React.FormEvent) {
     e?.preventDefault();
+    if (!user) { toast("Sign in with an account to use this feature"); return; }
     const prompt = aiText.trim();
     if (!prompt || aiBusy) return;
     setAiBusy(true);
@@ -201,7 +209,7 @@ export function MusicView() {
             <div className="min-w-0 flex-1">
               <button onClick={() => play(list, i)} className={cn("block max-w-full truncate text-left text-sm font-medium", on && "text-primary")}>{t.title}</button>
               <div className="truncate text-xs text-muted-foreground">
-                <span className="mr-1.5 rounded border px-1 py-px text-[10px] uppercase tracking-wide">{t.source === "piped" ? "Piped" : "Deezer"}</span>
+                <span className="mr-1.5 rounded border px-1 py-px text-[10px] uppercase tracking-wide">{t.source === "piped" ? "Piped" : t.source === "itunes" ? "iTunes" : "Deezer"}</span>
                 {t.artistId ? <button onClick={() => openArtist(t.artistId)} className="hover:underline">{t.artist}</button> : <span>{t.artist}</span>}
                 {t.album && <> · <button onClick={() => openAlbum(t.albumId)} className="hover:underline">{t.album}</button></>}
               </div>
@@ -249,12 +257,12 @@ export function MusicView() {
   const mineView = view?.kind === "mine" ? mine.find((m) => m.id === view.id) : undefined;
 
   return (
-    <div className={cn("music-application flex h-full flex-col", native && "has-native-navigation")}>
+    <div className={cn("music-application qaisify-application flex h-full flex-col", native && "has-native-navigation")}>
       {native && <aside className="music-library-rail">
-        <div className="native-app-wordmark"><Disc3/><span>Birch Music</span></div>
+        <div className="native-app-wordmark"><Disc3/><span>Qaisify</span></div>
         <nav aria-label="Music navigation">
-          <Button variant="ghost" aria-pressed={section === "home"} onClick={() => { setSection("home"); void go(async () => ({ kind: "home", title: "Top charts", ...(await musicApi<any>({ op: "home" })) }), false); }}><Home/>Home</Button>
-          <Button variant="ghost" aria-pressed={section === "browse"} onClick={() => { setSection("browse"); void go(async () => ({ kind: "home", title: "Browse", ...(await musicApi<any>({ op: "home" })) }), false); }}><Search/>Browse</Button>
+          <Button variant="ghost" aria-pressed={section === "home"} onClick={() => { setSection("home"); setView({ kind: "home", title: "Qaisify", tracks: [], albums: [], artists: [] }); }}><Home/>Home</Button>
+          <Button variant="ghost" aria-pressed={section === "browse"} onClick={() => { setSection("browse"); setView({ kind: "home", title: "Browse", tracks: [], albums: [], artists: [] }); }}><Search/>Search</Button>
           <Button variant="ghost" aria-pressed={section === "library"} onClick={() => setSection("library")}><Library/>Your library</Button>
         </nav>
         <div className="music-library-label"><span>PLAYLISTS</span><Button variant="ghost" size="icon" aria-label="Create playlist" title="Create playlist" onClick={() => void newPlaylistPrompt()}><Plus/></Button></div>
@@ -269,13 +277,15 @@ export function MusicView() {
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search songs, albums, artists" className="w-full bg-transparent text-sm outline-none" />
         </form>
         {track && <button onClick={toggleLyrics} className={cn("rounded-md p-2 hover:bg-accent", lyricsOpen && "bg-accent")} aria-label="Lyrics"><Mic2 className="size-4" /></button>}
+        <Button variant="ghost" size="icon" aria-label="Queue" title="Queue" onClick={() => setQueueOpen(v => !v)}><ListPlus className="size-4"/></Button>
         <RoomButton kind="music" />
-        <select value={player.server} onChange={(e) => setServer(e.target.value as Server)} aria-label="Music source" className="hidden rounded-md border bg-card px-2 py-1.5 text-sm sm:block">
+        <select value={player.server} onChange={(e) => setServer(e.target.value as Server)} aria-label="Music source" className="qaisify-source rounded-md border bg-card px-2 py-1.5 text-sm">
           {SERVERS.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
         </select>
       </header>
 
       <div className="music-main-scroll flex-1 overflow-y-auto">
+        {queueOpen && <section className="qaisify-queue"><H>Queue</H><Tracks list={player.queue} /></section>}
         <div className="music-main-inner mx-auto max-w-6xl px-4 py-6">
           {native && section === "library" ? <section><h1 className="text-3xl font-semibold">Your library</h1><div className="mt-5 flex items-center justify-between"><span className="text-sm text-muted-foreground">{mine.length} playlists</span><Button variant="secondary" onClick={() => void newPlaylistPrompt()}><Plus/>New playlist</Button></div><div className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-5">{mine.map(p => <Card key={p.id} art={p.tracks[0]?.art ?? ""} title={p.name} sub={`${p.tracks.length} songs`} onClick={() => { setSection("home"); push({ kind: "mine", id: p.id }); }}/>)}</div>{!mine.length && <p className="mt-8 text-sm text-muted-foreground">No saved playlists.</p>}</section> : <>
           {error && <div className="mb-4 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm">{error} <button onClick={() => location.reload()} className="ml-2 underline">Retry</button></div>}
@@ -292,7 +302,9 @@ export function MusicView() {
           {loading && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Loading…</p>}
 
           {!loading && view?.kind === "home" && <>
-            {native && <><div className="music-greeting"><span>MADE FOR YOU</span><h1>{section === "browse" ? "Find your next favorite" : "Your daily soundtrack"}</h1></div>{featured.length > 0 && <div className="music-quick-picks">{featured.slice(0,6).map(p => <Button key={p.id} variant="secondary" onClick={() => void openPlaylist(p.id)}>{p.art && <img src={artUrl(p.art)} alt=""/>}<span>{p.title}</span><Play/></Button>)}</div>}</>}
+            <div className="music-greeting"><h1>{section === "browse" ? "Browse All" : "Your music, your mood"}</h1></div>
+            {section !== "browse" && shelves.map(row => <section key={row.title}><H>{row.title}</H><Row>{row.tracks.map((song, index) => <Card key={song.id} art={song.art} title={song.title} sub={song.artist} onClick={() => void play(row.tracks, index)}/>)}</Row></section>)}
+            <details className="qaisify-dj"><summary>AI DJ</summary>
             <section className="music-hero music-dj relative overflow-hidden rounded-2xl p-6 sm:p-8">
               <div className="relative">
                 <div className="label-mono flex items-center gap-1.5"><Sparkles className="size-3.5" /> AI DJ</div>
@@ -308,7 +320,9 @@ export function MusicView() {
               </div>
             </section>
 
-            {genres.length > 0 && <>
+            </details>
+
+            {section === "browse" && genres.length > 0 && <>
               <H>Browse by type</H>
               <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
                 {genres.map((g) => (
@@ -326,7 +340,7 @@ export function MusicView() {
               : <p className="mt-2 text-sm text-muted-foreground">No playlists yet — make one, or ask the AI DJ above.</p>}
 
             {featured.length > 0 && <><H>Featured playlists</H><Row>{featured.map((p) => <Card key={p.id} art={p.art} title={p.title} sub={`${p.count} songs`} onClick={() => openPlaylist(p.id)} />)}</Row></>}
-            <H>Top songs</H><Tracks list={view.tracks.slice(0, 15)} />
+
             {view.artists.length > 0 && <><H>Top artists</H><Row>{view.artists.map((a) => <Card key={a.id} round art={a.art} title={a.name} onClick={() => openArtist(a.id)} />)}</Row></>}
             {view.albums.length > 0 && <><H>Top albums</H><Row>{view.albums.map((a) => <Card key={a.id} art={a.art} title={a.title} sub={a.artist} onClick={() => openAlbum(a.id)} />)}</Row></>}
           </>}
