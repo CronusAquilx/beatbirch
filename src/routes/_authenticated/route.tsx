@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthedLayout() {
-  const { session, loading } = useAuth();
+  const { session, loading, guest } = useAuth();
   const { pathname } = useLocation();
   const prefs = usePrefs();
   if (loading)
@@ -22,7 +22,7 @@ function AuthedLayout() {
         <AstraMark className="size-8" pulsing />
       </div>
     );
-  if (!session) return <Navigate to="/auth" replace />;
+  if (!session && !guest) return <Navigate to="/auth" replace />;
   // The full-tab game player shows only the game (no sidebar or welcome prompts).
   if (pathname === "/play" || pathname.startsWith("/console")) return <Outlet />;
   if (prefs.layout === "windows" && prefs.console === "off") return <WindowsDesktop><Outlet/></WindowsDesktop>;
