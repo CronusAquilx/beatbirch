@@ -1,9 +1,9 @@
 # Birchbeat import roadmap
 
 ## Current request — console video references
-- [ ] Match uploaded PS5 and Xbox screen organization and smooth button transitions.
-- [ ] Add Wii channel-grid and Neutral black-sidebar layouts with shared working library, search, media, social and settings.
-- [ ] Preserve saved appearances, installed game IDs, guest/account flow and fullscreen; verify layout switching and navigation.
+- [x] Match uploaded PS5 and Xbox screen organization and smooth button transitions.
+- [x] Add Wii channel-grid and Neutral black-sidebar layouts with shared working library, search, media, social and settings.
+- [x] Preserve saved appearances and installed game IDs; tested guest layout choices, media navigation, Store search, layout switching and fullscreen. Signed-in storage remains unverified without a matching account.
 
 ## Current request — unified Windows desktop
 - [x] Consolidate Classic/Launcher into Windows with existing settings and preserve Classic wallpaper.
