@@ -1,7 +1,8 @@
 # Birchbeat import roadmap
 
 ## Current request — old Qaisify music app
-- [ ] Complete fresh Qaisify YouTube connection after workspace move — connection dialog was interrupted.
+- [x] Replace broken workspace connector with the user's saved server-only GOOGLE_API_KEY for YouTube lookups.
+- [ ] Confirm saved GOOGLE_API_KEY reaches the running music service — secret is saved but currently unavailable to the preview.
 - [x] Adapt supplied Qaisify source into shared Music: iTunes catalog, mood shelves, glass appearance and controlled YouTube playback.
 - [x] Preserve shared playlist/player interfaces and guest restrictions; four focused tests passed and preview compilation clean.
 - [ ] Verify provider playback — user performs listening checks by preference.
