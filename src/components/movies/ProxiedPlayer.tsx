@@ -11,7 +11,7 @@ import { matchesVoice, VOICE_SEARCH_WAIT_MS } from "@/lib/movies/voice-search";
  * browser only talks to this site. The full source address, including its
  * query string (autoplay, captions, resume time), is passed through unchanged.
  */
-export function ProxiedPlayer({ src, title, onLoad, onError, anime = false, voice = 'auto', onVoiceChange, onVoiceResult }: { src: string; title: string; onLoad?: () => void; onError?: () => void; anime?: boolean; voice?: string; onVoiceChange?: (voice: string) => void; onVoiceResult?: (found: boolean) => void }) {
+export function ProxiedPlayer({ src, title, onLoad, onError, anime = false, voice = 'auto', onVoiceChange, onVoiceResult, searchAttempt = 0, autoVoiceSearch = true }: { src: string; title: string; onLoad?: () => void; onError?: () => void; anime?: boolean; voice?: string; onVoiceChange?: (voice: string) => void; onVoiceResult?: (found: boolean) => void; searchAttempt?: number; autoVoiceSearch?: boolean }) {
   const ref = useRef<HTMLIFrameElement>(null);
   const [tracks, setTracks] = useState<VoiceTrack[]>([]);
   const [audioError, setAudioError] = useState(false);
@@ -27,7 +27,7 @@ export function ProxiedPlayer({ src, title, onLoad, onError, anime = false, voic
     return () => window.clearInterval(timer);
   }, [src]);
   useEffect(() => {
-    if (voice === 'auto') return;
+    if (voice === 'auto' || !autoVoiceSearch) return;
     let complete = false;
     const check = () => {
       if (complete) return;
@@ -44,7 +44,7 @@ export function ProxiedPlayer({ src, title, onLoad, onError, anime = false, voic
     const deadline = window.setTimeout(() => { if (!complete) { complete = true; resultRef.current?.(false); } }, VOICE_SEARCH_WAIT_MS);
     check();
     return () => { window.clearInterval(poll); window.clearTimeout(deadline); };
-  }, [src, voice]);
+  }, [src, voice, searchAttempt, autoVoiceSearch]);
   useEffect(() => {
     const iframe = ref.current;
     if (!iframe) return;

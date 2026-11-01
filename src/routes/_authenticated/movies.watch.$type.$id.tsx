@@ -11,7 +11,7 @@ import { myRoomId, setRoomState, useRoom } from "@/lib/rooms";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { nextVoiceSource } from "@/lib/movies/voice-search";
-import { animeIcuVoiceUrl, animeVoiceUrl, type AnimeMatch } from "@/lib/movies/anime-sources";
+import { anikotoSearchUrl, animeIcuVoiceUrl, animeVoiceUrl, supportsAnimationSources, type AnimeMatch } from "@/lib/movies/anime-sources";
 
 const CAPTIONS = [
   ["off", "Off"], ["en", "English"], ["es", "Spanish"], ["fr", "French"],
@@ -50,6 +50,8 @@ function Watch() {
   const voiceTried = useRef(new Set<string>());
   const [voice, setVoice] = useState('auto');
   const [voiceStatus, setVoiceStatus] = useState<'idle' | 'searching' | 'found' | 'missing'>('idle');
+  const [voiceAttempt, setVoiceAttempt] = useState(0);
+  const [manualSource, setManualSource] = useState(false);
   const [animeMatches, setAnimeMatches] = useState<AnimeMatch[]>([]);
   const [animeId, setAnimeId] = useState<number | null>(null);
   const [anilistId, setAnilistId] = useState<number | null>(null);
@@ -71,11 +73,13 @@ function Watch() {
   const movie = useMovieDetail(isTV ? 0 : n);
   const tv = useTVDetail(isTV ? n : 0);
   const d = isTV ? tv.data : movie.data;
-  const isAnime = d?.original_language === "ja" && Boolean(d.genres?.some(genre => genre.id === 16));
+  const isAnime = supportsAnimationSources(d);
   const history = useWatchHistory();
   const room = useRoom("movies");
   const voiceSources = school ? STREAMING_SERVERS.filter(source => source.id === 'apiplayer') : [...(isAnime && animeId ? [{ id: 'anime-vidlink' }] : []), ...(isAnime && anilistId ? [{ id: 'anime-icu' }] : []), ...STREAMING_SERVERS];
   function chooseVoice(value: string) {
+    setManualSource(false);
+    setVoiceAttempt(attempt => attempt + 1);
     setVoice(value);
     voiceTried.current = new Set();
     setVoiceStatus(value === 'auto' ? 'idle' : 'searching');
@@ -83,7 +87,7 @@ function Watch() {
     if (value === 'auto' && server.startsWith('anime-')) setServerRaw('vidlink');
   }
   function voiceResult(found: boolean) {
-    if (voice === 'auto' || voiceStatus !== 'searching') return;
+    if (voice === 'auto' || manualSource || voiceStatus !== 'searching') return;
     if (found) { setVoiceStatus('found'); return; }
     voiceTried.current.add(server);
     const next = nextVoiceSource(voiceSources, voiceTried.current);
@@ -211,13 +215,13 @@ function Watch() {
   // Auto-pick a new source when the current one doesn't load in time.
   useEffect(() => { setLoaded(false); triedRef.current.add(server); }, [server, season, episode, n]);
   useEffect(() => {
-    if (loaded || voice !== 'auto') return;
+    if (loaded || voice !== 'auto' || manualSource) return;
     const timer = setTimeout(() => {
       const next = STREAMING_SERVERS.find((x) => !triedRef.current.has(x.id));
       if (next) setServer(next.id);
     }, 12000);
     return () => clearTimeout(timer);
-  }, [server, season, episode, n, loaded, voice]);
+  }, [server, season, episode, n, loaded, voice, manualSource]);
 
   const s = STREAMING_SERVERS.find((x) => x.id === server) ?? STREAMING_SERVERS[0];
   if (!s) return null;
@@ -226,10 +230,11 @@ function Watch() {
   const filteredServers = category === "all" ? STREAMING_SERVERS : STREAMING_SERVERS.filter((item) => item.category === category);
   const usingAnimeSource = server === 'anime-vidlink' && animeId !== null && voice !== 'auto';
   const usingIcuAnime = server === 'anime-icu' && anilistId !== null && voice !== 'auto';
-  const sourceName = usingAnimeSource ? 'VidLink Anime' : usingIcuAnime ? 'VidSrc.icu Anime' : s.name;
-  const baseUrl = usingAnimeSource ? animeVoiceUrl(animeId, episode, voice === 'en' ? 'en' : 'ja') : usingIcuAnime ? animeIcuVoiceUrl(anilistId, episode, voice === 'en' ? 'en' : 'ja') : s.url(n, type, isTV ? season : undefined, isTV ? episode : undefined);
+  const usingAnikoto = server === 'anikoto';
+  const sourceName = usingAnikoto ? 'Anikoto' : usingAnimeSource ? 'VidLink Anime' : usingIcuAnime ? 'VidSrc.icu Anime' : s.name;
+  const baseUrl = usingAnikoto ? anikotoSearchUrl(d?.title || d?.name || '') : usingAnimeSource ? animeVoiceUrl(animeId, episode, voice === 'en' ? 'en' : 'ja') : usingIcuAnime ? animeIcuVoiceUrl(anilistId, episode, voice === 'en' ? 'en' : 'ja') : s.url(n, type, isTV ? season : undefined, isTV ? episode : undefined);
   const directUrl = `${baseUrl}${baseUrl.includes("?") ? "&" : "?"}autoplay=1${caption !== "off" ? `&sub_lang=${caption}` : ""}${startAt ? `&startAt=${startAt}&progress=${startAt}&t=${startAt}&start=${startAt}` : ""}`;
-  const embedUrl = directUrl;
+  const embedUrl = usingAnikoto ? baseUrl : directUrl;
 
   const toggleFullscreen = useCallback(async () => {
     const player = playerRef.current;
@@ -261,18 +266,22 @@ function Watch() {
       </header>
       <div className={cn("mx-auto px-3 py-3 sm:px-5", theater ? "max-w-none" : "max-w-7xl")}>
         <div ref={playerRef} className={cn("relative overflow-hidden border border-border bg-card shadow-2xl", theater ? "h-[76dvh]" : "aspect-video", fakeFullscreen && "fixed inset-0 z-50 h-dvh w-screen border-0", fullscreen ? "h-screen w-screen border-0" : "rounded-md")}>
-          {!ready ? <div className="grid size-full place-items-center text-sm text-muted-foreground">Finding where you left off…</div> : <ProxiedPlayer key={`${server}-${season}-${episode}-${caption}`} src={embedUrl} anime={isAnime} voice={voice} onVoiceChange={chooseVoice} onVoiceResult={voiceResult} title={`${d?.title || d?.name || "Movie"} player`} onLoad={() => setLoaded(true)} onError={() => voice !== 'auto' ? voiceResult(false) : tryNextServer()} />}
+          {!ready ? <div className="grid size-full place-items-center text-sm text-muted-foreground">Finding where you left off…</div> : <ProxiedPlayer key={`${server}-${season}-${episode}-${caption}`} src={embedUrl} anime={isAnime} voice={voice} searchAttempt={voiceAttempt} autoVoiceSearch={!manualSource} {...(usingAnikoto ? {} : { onVoiceChange: chooseVoice })} onVoiceResult={voiceResult} title={`${d?.title || d?.name || "Movie"} player`} onLoad={() => setLoaded(true)} onError={() => { if (!manualSource) { if (voice !== 'auto') voiceResult(false); else tryNextServer(); } }} />}
           {fakeFullscreen && <Button type="button" variant="secondary" size="icon" onClick={() => setFakeFullscreen(false)} aria-label="Exit fullscreen" className="absolute right-3 top-3 z-10 rounded-full"><Minimize2 /></Button>}
         </div>
         {!fullscreen && !fakeFullscreen && <>
           {voice !== 'auto' && <div className="mt-3 space-y-2">
-            <p role="status" className="text-sm text-muted-foreground">{voiceStatus === 'found' ? `${voice === 'en' ? 'English' : 'Japanese'} audio selected on ${sourceName}.` : voiceStatus === 'missing' ? `No ${voice === 'en' ? 'English' : 'Japanese'} audio could be verified on the tried sources.` : `Looking for ${voice === 'en' ? 'English' : 'Japanese'} audio · ${sourceName} · ${voiceTried.current.size + 1}/${voiceSources.length}`}</p>
+            <p role="status" className="text-sm text-muted-foreground">{manualSource ? `Automatic language search paused · ${sourceName}` : voiceStatus === 'found' ? `${voice === 'en' ? 'English' : 'Japanese'} audio selected on ${sourceName}.` : voiceStatus === 'missing' ? `These sources did not expose a verifiable ${voice === 'en' ? 'English' : 'Japanese'} track. This does not mean a dub does not exist.` : `Looking for ${voice === 'en' ? 'English' : 'Japanese'} audio · ${sourceName} · ${voiceTried.current.size + 1}/${voiceSources.length}`}</p>
             {voiceStatus === 'missing' && <Button variant="outline" size="sm" onClick={() => { chooseVoice(voice); setServerRaw(voiceSources[0]?.id ?? server); }}>Retry language search</Button>}
             {isAnime && !school && <>
               {animeLookup === 'loading' && <p className="text-xs text-muted-foreground">Finding dedicated anime sources…</p>}
               {animeMatches.length > 0 && <Select value={animeId ? String(animeId) : ''} onValueChange={value => { setAnimeId(Number(value)); voiceTried.current = new Set(); setVoiceStatus('searching'); setServerRaw('anime-vidlink'); }}><SelectTrigger aria-label="Confirm anime series for dub"><SelectValue placeholder="Choose matching anime series / season" /></SelectTrigger><SelectContent>{animeMatches.map(match => <SelectItem key={match.id} value={String(match.id)}>{match.title}{match.episodes ? ` · ${match.episodes} episodes` : ''}</SelectItem>)}</SelectContent></Select>}
               {(animeLookup === 'error' || (animeLookup === 'ready' && !animeMatches.length)) && <p className="text-xs text-muted-foreground">Dedicated anime lookup unavailable; checking regular sources.</p>}
             </>}
+          </div>}
+          {isAnime && !school && <div className="mt-3 flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => { setManualSource(true); setServerRaw('anikoto'); }}>Anikoto</Button>
+            {n === 663558 && !isTV && <Button asChild variant="outline" size="sm"><a href="https://www.netflix.com/title/81418302" target="_blank" rel="noopener noreferrer">English on Netflix · subscription required</a></Button>}
           </div>}
           <div className="mt-3 flex flex-wrap gap-2">
             <Button type="button" variant={theater ? "default" : "secondary"} size="sm" onClick={() => setTheater((value) => !value)}><Expand />{theater ? "Exit theater" : "Theater"}</Button>
@@ -313,7 +322,7 @@ function Watch() {
             </div>
             <div className="mt-3 grid gap-2 sm:grid-cols-[14rem_minmax(0,1fr)]">
               <Select value={category} onValueChange={(value) => setCategory(value as ServerCategory | "all")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All categories</SelectItem>{SERVER_CATEGORIES.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select>
-              <Select value={server} onValueChange={setServer}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{filteredServers.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select>
+              <Select value={server} onValueChange={value => { setManualSource(true); setServer(value); }}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{filteredServers.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}{isAnime && <SelectItem value="anikoto">Anikoto</SelectItem>}</SelectContent></Select>
             </div>
           </section>}
         </>}
