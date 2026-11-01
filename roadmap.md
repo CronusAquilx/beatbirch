@@ -1,9 +1,9 @@
 # Birchbeat import roadmap
 
 ## Current request — desktop polish
-- [ ] Add smooth desktop/window motion and live wallpaper choices without overriding saved preferences or reduced-motion controls.
-- [ ] Add recognizable app icons and a Microsoft-style store for existing apps.
-- [ ] Add independently saved clock font choices; verify settings, store and launch flow.
+- [x] Add dock magnification, window opening/closing motion and selectable Rainfall/Lake ripples; wire Classic/Launcher image motion without overriding saved choices or reduced-motion controls.
+- [x] Add shared Spotify, Crunchyroll, Chrome and Steam-shaped app icons and Microsoft-style Birch Store for existing apps (no new provider services or downloads).
+- [x] Add four independently saved clock fonts; 15 regression tests and preview compilation pass. Browser verified Store-to-Music window, digital clock settings readback, changing live canvas and phone layout without overflow or page errors. Playback remains user-tested.
 
 ## Current request — video-referenced layouts
 - [x] Inspect five uploaded reference videos: wallpaper desktops, centered weekday/date, colorful app docks, compact system bars and floating app windows.
