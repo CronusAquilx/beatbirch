@@ -43,6 +43,13 @@
       "when": 1793501491297,
       "tag": "0005_username_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793503240470,
+      "tag": "0006_apply_imported_schema",
+      "breakpoints": true
     }
   ]
 }
