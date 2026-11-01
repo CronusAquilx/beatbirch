@@ -1,30 +1,22 @@
 import { useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { openProxied } from "@/lib/astra/proxy";
+import { SERVERS, sourceOrder, type Server, type AudioSource } from "./sources";
+export { SERVERS, type Server } from "./sources";
 import type { Prefs } from "@/lib/astra/prefs";
 
 /**
  * App-wide music player. The audio element and YouTube frame live outside any page,
  * so music keeps playing while you move between tabs (Web, Movies, Chat…).
  */
-export type Track = { id: string; title: string; artist: string; artistId: string; album: string; albumId: string; art: string; duration: number; preview?: string; source?: "piped" };
+export type Track = { id: string; title: string; artist: string; artistId: string; album: string; albumId: string; art: string; duration: number; preview?: string; source?: "piped" | "jiosaavn" };
 
-export const SERVERS = [
-  { id: "piped", name: "Piped (no ads)" },
-  { id: "soundcloud", name: "SoundCloud (no ads)" },
-  { id: "youtube", name: "YouTube (may have ads)" },
-  { id: "audius", name: "Audius" },
-  { id: "deezer", name: "Deezer (preview)" },
-] as const;
-export type Server = (typeof SERVERS)[number]["id"];
-
-type State = { queue: Track[]; cur: number; status: string; paused: boolean; time: number; dur: number; server: Server; mode: "audio" | "video" | null; volume: number };
-let state: State = { queue: [], cur: -1, status: "", paused: true, time: 0, dur: 0, server: "piped", mode: null, volume: 1 };
+type State = { queue: Track[]; cur: number; status: string; paused: boolean; time: number; dur: number; server: Server; currentSource: AudioSource | null; mode: "audio" | "video" | null; volume: number };
+let state: State = { queue: [], cur: -1, status: "", paused: true, time: 0, dur: 0, server: "auto", currentSource: null, mode: null, volume: 1 };
 const subs = new Set<() => void>();
 const set = (p: Partial<State>) => { state = { ...state, ...p }; subs.forEach((f) => f()); };
 
 let audio: HTMLAudioElement | null = null;
-let frame: HTMLIFrameElement | null = null;
+let restored = false;
 let token = "";
 let playId = 0;
 
@@ -51,88 +43,106 @@ export function downloadUrl(t: Track) {
 function ensure() {
   if (typeof document === "undefined") return;
   if (!audio) {
-    audio = new Audio();
-    audio.preload = "auto";
-    audio.addEventListener("timeupdate", () => set({ time: audio!.currentTime, dur: audio!.duration || state.dur }));
-    audio.addEventListener("play", () => set({ paused: false }));
-    audio.addEventListener("pause", () => set({ paused: true }));
-    audio.addEventListener("ended", () => next());
+    const element = new Audio();
+    audio = element;
+    element.preload = "auto";
+    element.addEventListener("timeupdate", () => set({ time: element.currentTime, dur: Number.isFinite(element.duration) ? element.duration : state.dur }));
+    element.addEventListener("play", () => set({ paused: false }));
+    element.addEventListener("pause", () => set({ paused: true }));
+    element.addEventListener("ended", () => next());
   }
-  if (!frame) {
-    frame = document.createElement("iframe");
-    frame.title = "Music player";
-    frame.allow = "autoplay; encrypted-media";
-    Object.assign(frame.style, { position: "fixed", width: "1px", height: "1px", bottom: "0", right: "0", opacity: "0", pointerEvents: "none", border: "0" });
-    document.body.appendChild(frame);
+  if (!restored) {
+    restored = true;
+    try {
+      const saved = localStorage.getItem("bb-music-server3");
+      const value = saved === "piped" ? "youtube" : saved;
+      if (value && SERVERS.some(x => x.id === value)) set({ server: value as Server });
+    } catch { /* storage unavailable */ }
   }
-  try { const s = localStorage.getItem("bb-music-server3"); if (s && SERVERS.some((x) => x.id === s)) state.server = s as Server; } catch { /* ignore */ }
 }
 
-export function setServer(s: Server) { localStorage.setItem("bb-music-server3", s); set({ server: s }); }
+export function setServer(s: Server) {
+  ensure();
+  try { localStorage.setItem("bb-music-server3", s); } catch { /* storage unavailable */ }
+  set({ server: s });
+  if (state.cur >= 0) void playList(state.queue, state.cur);
+}
 export function setVolume(v: number) { ensure(); if (audio) audio.volume = v; set({ volume: v }); }
+// Retained for existing shells; audio-only playback does not need a proxied frame.
+export function setPlayerPrefs(_p: Prefs) {}
 
-let prefsRef: Prefs | null = null;
-export function setPlayerPrefs(p: Prefs) { prefsRef = p; }
+async function startAudio(element: HTMLAudioElement, url: string): Promise<void> {
+  element.src = url;
+  await new Promise<void>((resolve, reject) => {
+    const cleanup = () => { clearTimeout(timer); element.removeEventListener("error", failed); };
+    const failed = () => { cleanup(); reject(new Error("Audio source unavailable")); };
+    const timer = setTimeout(failed, 12000);
+    element.addEventListener("error", failed, { once: true });
+    element.play().then(() => { cleanup(); resolve(); }, error => { cleanup(); reject(error); });
+  });
+}
 
 export async function playList(list: Track[], i: number) {
   ensure();
   const t = list[i];
-  if (!t || !audio || !frame) return;
+  const element = audio;
+  if (!t || !element) return;
   const my = ++playId;
-  set({ queue: list, cur: i, status: "Finding the original…", paused: false, time: 0, dur: t.duration, mode: null });
-  audio.pause(); audio.removeAttribute("src");
-  frame.src = "about:blank";
-  await musicToken();
-  // Ad-free audio sources first; YouTube (ads) only as a last resort unless picked.
-  const rest = (["piped", "soundcloud", "audius", "youtube", "deezer"] as Server[]).filter((x) => x !== state.server);
-  const order = [state.server, ...rest];
-  if (t.id.startsWith("piped:")) {
-    try {
-      const r = await musicApi<{ url: string | null; down?: boolean }>({ op: "piped-stream", id: t.id.slice(6) });
-      if (my !== playId) return;
-      if (r.url) {
-        audio.src = `/api/music?op=audio&u=${encodeURIComponent(r.url)}&token=${encodeURIComponent(token)}`;
-        await audio.play();
-        set({ mode: "audio", status: "" });
+  element.onerror = null;
+  element.pause(); element.removeAttribute("src"); element.load();
+  set({ queue: list, cur: i, status: "Finding audio…", paused: true, time: 0, dur: t.duration, mode: null, currentSource: null });
+  const order = sourceOrder(state.server, t.source);
+  const tried = new Set<AudioSource>();
+  let recovering = false;
+  async function attempt(resume = 0): Promise<void> {
+    if (recovering || my !== playId) return;
+    recovering = true;
+    element.onerror = null;
+    for (const sv of order) {
+      if (my !== playId) { recovering = false; return; }
+      if (tried.has(sv)) continue;
+      tried.add(sv);
+      const name = SERVERS.find(x => x.id === sv)?.name ?? sv;
+      set({ status: `Trying ${name}…`, currentSource: null, mode: null });
+      try {
+        const r = await musicApi<{ url: string | null; quality?: string }>({ op: "resolve", server: sv, id: t.id, title: t.title, artist: t.artist, duration: String(t.duration || 0), preview: t.preview ?? "" });
+        if (my !== playId) { recovering = false; return; }
+        if (!r.url) continue;
+        await startAudio(element, `/api/music?op=audio&u=${encodeURIComponent(r.url)}&token=${encodeURIComponent(token)}`);
+        if (my !== playId) { recovering = false; return; }
+        if (resume > 0 && Number.isFinite(element.duration)) element.currentTime = Math.min(resume, Math.max(0, element.duration - 1));
+        set({ mode: "audio", currentSource: sv, status: sv === "deezer" ? "30-second preview" : r.quality ?? "", paused: false });
+        recovering = false;
+        element.onerror = () => { if (my === playId) { const at = element.currentTime; set({ status: "Stream interrupted — switching source…", paused: true }); void attempt(at); } };
         return;
+      } catch (error) {
+        if (my !== playId) { recovering = false; return; }
+        if (error instanceof Error && error.name === "NotAllowedError") {
+          set({ mode: "audio", currentSource: sv, status: "Tap Play to continue", paused: true });
+          recovering = false;
+          element.onerror = () => { if (my === playId) void attempt(element.currentTime); };
+          return;
+        }
+        element.pause(); element.removeAttribute("src"); element.load();
       }
-      if (r.down) set({ status: "Piped servers are down — trying other sources…" });
-    } catch { /* fall back to the other sources */ }
+    }
+    recovering = false;
+    if (my === playId) set({ status: "No source is available for this song right now", paused: true, mode: null, currentSource: null });
   }
-  for (const sv of order) {
-    if (my !== playId) return;
-    try {
-      if (sv === "youtube") {
-        const { ids } = await musicApi<{ ids: string[] }>({ op: "video", q: `${t.artist} - ${t.title} official audio`, title: t.title, artist: t.artist });
-        if (!ids[0] || my !== playId) continue;
-        const src = `https://www.youtube.com/embed/${ids[0]}?autoplay=1&playsinline=1&rel=0`;
-        if (prefsRef) await openProxied(frame, src, prefsRef); else frame.src = src;
-        set({ status: sv === state.server ? "" : "Playing from YouTube", mode: "video", paused: false });
-        return;
-      }
-      const { url } = await musicApi<{ url: string | null }>({ op: "resolve", server: sv, q: `${t.artist} ${t.title}`, title: t.title, artist: t.artist, duration: String(t.duration || 0), preview: t.preview ?? "" });
-      if (!url || my !== playId) continue;
-      audio.src = `/api/music?op=audio&u=${encodeURIComponent(url)}&token=${encodeURIComponent(token)}`;
-      await audio.play();
-      const name = SERVERS.find((x) => x.id === sv)!.name;
-      set({ mode: "audio", status: sv === "deezer" ? "30-second preview" : sv === state.server ? "" : `Playing from ${name}` });
-      return;
-    } catch { /* try next */ }
-  }
-  if (my === playId) set({ status: "Couldn't find a playable version" });
+  await attempt();
 }
 
 export function toggle() {
   ensure();
-  if (state.mode === "audio" && audio?.src) { if (audio.paused) void audio.play(); else audio.pause(); return; }
-  if (state.mode === "video" && frame) {
-    if (state.paused) { void playList(state.queue, state.cur); } else { frame.src = "about:blank"; set({ paused: true }); }
-  }
+  if (state.mode === "audio" && audio?.src) {
+    if (audio.paused) void audio.play().catch(() => set({ status: "Playback unavailable — select another source", paused: true }));
+    else audio.pause();
+  } else if (state.cur >= 0) void playList(state.queue, state.cur);
 }
 export function next() { if (state.cur < state.queue.length - 1) void playList(state.queue, state.cur + 1); }
 export function prev() { if (audio && state.mode === "audio" && audio.currentTime > 4) { audio.currentTime = 0; return; } void playList(state.queue, Math.max(0, state.cur - 1)); }
 export function seek(t: number) { if (audio && state.mode === "audio") audio.currentTime = t; }
-export function stop() { playId++; audio?.pause(); if (frame) frame.src = "about:blank"; set({ cur: -1, queue: [], mode: null, paused: true }); }
+export function stop() { playId++; if (audio) { audio.onerror = null; audio.pause(); audio.removeAttribute("src"); audio.load(); } set({ cur: -1, queue: [], mode: null, currentSource: null, paused: true }); }
 export function getAudio() { ensure(); return audio; }
 export function getPlayer() { return state; }
 
