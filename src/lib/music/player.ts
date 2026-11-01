@@ -5,7 +5,7 @@ export { SERVERS, type Server } from "./sources";
 import type { Prefs } from "@/lib/astra/prefs";
 
 /**
- * App-wide music player. The audio element and YouTube frame live outside any page,
+ * App-wide music player. The audio element lives outside any page,
  * so music keeps playing while you move between tabs (Web, Movies, Chat…).
  */
 export type Track = { id: string; title: string; artist: string; artistId: string; album: string; albumId: string; art: string; duration: number; preview?: string; source?: "piped" | "jiosaavn" };
@@ -95,6 +95,7 @@ export async function playList(list: Track[], i: number) {
   const tried = new Set<AudioSource>();
   let recovering = false;
   async function attempt(resume = 0): Promise<void> {
+    if (!element || !t) return;
     if (recovering || my !== playId) return;
     recovering = true;
     element.onerror = null;
