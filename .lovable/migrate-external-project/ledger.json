@@ -1,0 +1,12 @@
+{
+  "source": "qaisifyy-main_3.zip",
+  "scope": "Integrate the old music app into Birch without replacing other applications",
+  "capabilities": [
+    {"capability":"music interface","source":"Qaisify React screens","outcome":"migrate","status":"in_progress","next_action":"Adapt shared Birch music view"},
+    {"capability":"catalog and metadata","source":"iTunes public API","outcome":"preserve","status":"in_progress","next_action":"Reuse search, artist and album data through existing music endpoint"},
+    {"capability":"playback","source":"YouTube verified embed candidates","outcome":"preserve","status":"in_progress","next_action":"Adapt candidate resolution to existing player"},
+    {"capability":"secrets","source":"Hardcoded YouTube API credential","outcome":"secure configuration only","status":"pending","next_action":"Check existing secure configuration; never copy embedded credential"},
+    {"capability":"records and auth","source":"No schema or record exports detected; generated client present","outcome":"retain existing Birch accounts","status":"inspection","next_action":"Confirm source client call sites before deciding"},
+    {"capability":"verification","source":"UI, search and playback","outcome":"verify","status":"pending","next_action":"Run focused tests; provider playback remains user-tested"}
+  ]
+}
