@@ -4,6 +4,8 @@ import { ArrowRight, Search } from "lucide-react";
 import { usePrefs } from "@/lib/astra/prefs";
 import { DesktopClock, DESKTOP_APPS } from "@/components/astra/DesktopSurface";
 import { Button } from "@/components/ui/button";
+import { DesktopWidgets } from "@/components/astra/DesktopWidgets";
+import { SwitchHome } from "@/components/astra/SwitchSurface";
 
 export const Route = createFileRoute("/_authenticated/home")({
   head: () => ({
@@ -23,6 +25,7 @@ function Home() {
   const p = usePrefs();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
+  if (p.layout === "switch") return <SwitchHome/>;
   return (
     <div className="reference-home">
       <div className="reference-home-center">
@@ -41,6 +44,7 @@ function Home() {
         </form>
         <div className="desktop-quick-apps">{DESKTOP_APPS.filter(a => ["/games", "/web", "/movies", "/music"].includes(a.to)).map(a => <Button asChild key={a.to} variant="ghost"><Link to={a.to}><a.icon/>{a.label}</Link></Button>)}</div>
       </div>
+      <DesktopWidgets onMusic={() => void navigate({ to: "/music" })}/>
     </div>
   );
 }

@@ -2,6 +2,32 @@ import { describe, expect, it } from "vitest";
 import { setPrefs, setAppearance, resetPrefs } from "./prefs";
 
 describe("persisted appearance switching", () => {
+  it("never persists temporary guest wallpaper URLs", () => {
+    resetPrefs(); setPrefs({ console: "off", layout: "classic" });
+    setAppearance("classic", { customBg: "blob:http://localhost/guest-wallpaper" });
+    const saved = JSON.parse(localStorage.getItem("astra-prefs") || "{}");
+    expect(saved.appearances.classic.customBg).toBe("");
+    expect(document.documentElement.dataset["custombg"]).toBe("on");
+  });
+  it("restores custom accents independently for each layout", () => {
+    resetPrefs(); setPrefs({ console: "off", layout: "switch" });
+    setAppearance("switch", { customAccent: "#12abcd" });
+    setPrefs({ layout: "windows" }); setAppearance("windows", { customAccent: "#ab1256" });
+    setPrefs({ layout: "switch" });
+    expect(document.documentElement.style.getPropertyValue("--star")).toBe("#12abcd");
+    setPrefs({ layout: "windows" });
+    expect(document.documentElement.style.getPropertyValue("--star")).toBe("#ab1256");
+  });
+  it("keeps wallpaper uploads and widget choices separate by layout", () => {
+    resetPrefs(); setPrefs({ console: "off", layout: "classic" });
+    setAppearance("classic", { customBg: "https://example.org/my-photo.jpg", widgets: { weather: false, notes: true, music: true } });
+    setPrefs({ layout: "launcher" });
+    expect(document.documentElement.dataset["custombg"]).toBeUndefined();
+    setPrefs({ layout: "classic" });
+    const saved = JSON.parse(localStorage.getItem("astra-prefs") || "{}");
+    expect(saved.appearances.classic.customBg).toBe("https://example.org/my-photo.jpg");
+    expect(saved.appearances.classic.widgets.weather).toBe(false);
+  });
   it("restores separate console and desktop wallpaper effects", () => {
     resetPrefs(); setPrefs({ console: "off", layout: "windows" });
     setAppearance("windows", { particles: "stars", wallpaperMotion: "zoom", appTransparency: "glass" });
