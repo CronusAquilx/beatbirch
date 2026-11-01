@@ -1,5 +1,5 @@
 import { createFileRoute, Navigate, Outlet, useLocation } from "@tanstack/react-router";
-import { useAuth } from "@/lib/auth";
+import { useAuth, readGuest } from "@/lib/auth";
 import { AstraMark } from "@/components/astra/Mark";
 import { usePrefs } from "@/lib/astra/prefs";
 import { ConsoleOnboarding } from "@/components/console/ConsoleOnboarding";
@@ -22,7 +22,7 @@ function AuthedLayout() {
         <AstraMark className="size-8" pulsing />
       </div>
     );
-  if (!session && !guest) return <Navigate to="/auth" replace />;
+  if (!session && !guest && !readGuest()) return <Navigate to="/auth" replace />;
   // The full-tab game player shows only the game (no sidebar or welcome prompts).
   if (pathname === "/play" || pathname.startsWith("/console")) return <Outlet />;
   if (prefs.layout === "windows" && prefs.console === "off") return <WindowsDesktop><Outlet/></WindowsDesktop>;

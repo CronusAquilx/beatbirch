@@ -7,7 +7,7 @@ type AuthCtx = AuthState & { enterGuest: () => void; exitGuest: () => void };
 const GUEST_KEY = "birch-guest-mode";
 const AuthContext = createContext<AuthCtx>({ session: null, user: null, loading: true, guest: false, enterGuest: () => {}, exitGuest: () => {} });
 
-function readGuest() {
+export function readGuest() {
   try { return window.sessionStorage.getItem(GUEST_KEY) === "1"; } catch { return false; }
 }
 function writeGuest(on: boolean) {
