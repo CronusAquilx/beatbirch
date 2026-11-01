@@ -1,5 +1,10 @@
 # Birchbeat import roadmap
 
+## Current request — music playback sources
+- [ ] Add YouTube audio-only, JioSaavn high-quality audio and Auto selection to the shared player.
+- [ ] Add automatic source/expired-stream fallback, safe audio relaying and current-source display without redesigning music.
+- [ ] Run only focused playback-rule tests; user will test actual songs. Gaana depends on a reliable public provider.
+
 ## Current request — account picker and guests
 - [ ] Show layout first on each document, then shared account picker and Add User form across every layout.
 - [ ] Support username/password accounts, optional contact email, and retain existing account compatibility.
