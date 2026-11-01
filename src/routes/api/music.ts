@@ -62,6 +62,14 @@ function matchScore(title: string, artist: string, dur: number, w: Want) {
 async function resolveAudio(server: string, w: Want, preview: string): Promise<string | null> {
   const q = `${w.artist} ${w.title}`;
   if (server === "deezer") return /^https:\/\/[a-z0-9-]+\.dzcdn\.net\//i.test(preview) ? preview : null;
+  if (server === "saavn") {
+    const d: any = await fetch(`${SAAVN}/api/search/songs?query=${encodeURIComponent(q)}&limit=20`, { signal: AbortSignal.timeout(6000) }).then((x) => x.json()).catch(() => ({}));
+    const ranked = (d.data?.results ?? []).map((x: any) => ({ x, s: matchScore(unesc(x.name ?? ""), (x.artists?.primary ?? []).map((a: any) => a.name).join(", "), Number(x.duration ?? 0), w) })).sort((a: any, b: any) => b.s - a.s);
+    const t = ranked[0]?.s >= 10 ? ranked[0].x : null;
+    const dl: any[] = t?.downloadUrl ?? [];
+    const best = dl.find((u) => u.quality === "320kbps") ?? dl.find((u) => u.quality === "160kbps") ?? dl[dl.length - 1];
+    return best?.url && AUDIO_HOST.test(best.url) ? best.url : null;
+  }
   if (server === "piped") {
     const ranked = (await pipedSearch(q)).map((x: any) => ({ x, s: matchScore(x.title, x.artist, x.duration, w) })).sort((a, b) => b.s - a.s);
     const t = (ranked[0]?.s ?? 0) >= 5 ? ranked[0]!.x : null;
@@ -95,6 +103,15 @@ async function resolveAudio(server: string, w: Want, preview: string): Promise<s
   }
   return null;
 }
+const SAAVN = (process.env["SAAVN_API"] ?? "https://saavn.sumit.co").replace(/\/+$/, "");
+const unesc = (x: string) => x.replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&#039;/g, "'");
+const within = <T,>(p: Promise<T>, ms: number) => Promise.race([p, new Promise<null>((r) => setTimeout(() => r(null), ms))]);
+/** Asks every full-length ad-free source at once and returns the first real match, so one slow source never stalls playback. */
+async function resolveFast(w: Want): Promise<{ url: string; server: string } | null> {
+  const servers = ["saavn", "soundcloud", "audius", "piped"];
+  const tries = servers.map((sv) => within(resolveAudio(sv, w, ""), 9000).then((url) => (url ? { url, server: sv } : Promise.reject())));
+  return Promise.any(tries).catch(() => null);
+}
 /* ---------- Piped (YouTube Music via Piped instances), all calls server-side ---------- */
 const PIPED_DEFAULT = ["https://pipedapi.kavin.rocks", "https://pipedapi.adminforge.de", "https://api.piped.private.coffee", "https://pipedapi.r4fo.com"];
 const pipedInstances = () => {
@@ -105,7 +122,7 @@ let pipedDown = false;
 /** Tries each instance in order, failing over on any non-200. */
 async function piped(path: string): Promise<any> {
   for (const base of pipedInstances()) {
-    const r = await fetch(`${base}${path}`, { headers: UA, signal: AbortSignal.timeout(8000) }).catch(() => null);
+    const r = await fetch(`${base}${path}`, { headers: UA, signal: AbortSignal.timeout(4000) }).catch(() => null);
     if (r?.ok) { const j = await r.json().catch(() => null); if (j) { pipedDown = false; return j; } }
   }
   pipedDown = true;
@@ -138,7 +155,7 @@ async function pipedStream(vid: string): Promise<string | null> {
   return best?.url ?? null;
 }
 const PIPED_AUDIO_HOST = /^https:\/\/([a-z0-9-]+\.)*(googlevideo\.com|[a-z0-9-]*piped[a-z0-9.-]*|kavin\.rocks|adminforge\.de|private\.coffee|r4fo\.com)(:\d+)?\//i;
-const AUDIO_HOST = /^https:\/\/(([a-z0-9-]+\.)*(dzcdn\.net|sndcdn\.com)\/|api\.audius\.co\/v1\/tracks\/)/i;
+const AUDIO_HOST = /^https:\/\/(([a-z0-9-]+\.)*(dzcdn\.net|sndcdn\.com|saavncdn\.com)\/|api\.audius\.co\/v1\/tracks\/)/i;
 const albumOf = (a: any) => ({ id: String(a.id), title: a.title ?? "", artist: a.artist?.name ?? "", art: a.cover_big ?? "", year: (a.release_date ?? "").slice(0, 4) });
 const artistOf = (a: any) => ({ id: String(a.id), name: a.name ?? "", art: a.picture_big ?? "", fans: a.nb_fan ?? 0 });
 const playlistOf = (p: any) => ({ id: String(p.id), title: p.title ?? "", art: p.picture_big ?? "", count: p.nb_tracks ?? 0, by: p.user?.name ?? "" });
@@ -192,6 +209,7 @@ async function handle({ request }: { request: Request }) {
       const raw = (url.searchParams.get("q") ?? "").slice(0, 200);
       try {
         const want: Want = { title: url.searchParams.get("title") || raw, artist: url.searchParams.get("artist") ?? "", duration: Number(url.searchParams.get("duration") ?? 0) || 0 };
+        if (url.searchParams.get("server") === "auto") return json(await resolveFast(want) ?? { url: null }, 0);
         const audio = await resolveAudio(url.searchParams.get("server") ?? "", want, url.searchParams.get("preview") ?? "");
         return json({ url: audio }, 0);
       } catch (e) { return json({ url: null, error: e instanceof Error ? e.message : "failed" }, 0); }
