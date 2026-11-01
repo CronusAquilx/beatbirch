@@ -1,9 +1,34 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { authenticateRequest } from "@/lib/astra/api-user.server";
+import { playableVideoIds, QAISIFY_ROWS, qaisifyTrack } from "@/lib/music/qaisify";
 
 /** Music relay: Deezer catalog (songs, albums, artists), artwork, lyrics and YouTube lookups load through Astra's server. */
-const YT_KEY = "AIzaSyCc5PPxKMk7-hqMK284HwnMISd13wIF15Y";
 const DZ = "https://api.deezer.com";
+
+const catalogCache = new Map<string, { at: number; data: any }>();
+async function itunes(path: string): Promise<any> {
+  const cached = catalogCache.get(path);
+  if (cached && Date.now() - cached.at < 300_000) return cached.data;
+  const r = await fetch(`https://itunes.apple.com${path}`, { signal: AbortSignal.timeout(8000) });
+  if (!r.ok) throw new Error("Song catalog unavailable — please try again");
+  const data = await r.json();
+  catalogCache.set(path, { at: Date.now(), data });
+  if (catalogCache.size > 200) { const first = catalogCache.keys().next().value; if (first) catalogCache.delete(first); }
+  return data;
+}
+const appleSearch = (term: string, entity = "song", limit = 25) => itunes(`/search?term=${encodeURIComponent(term)}&entity=${entity}&limit=${limit}&country=us`);
+const appleAlbum = (a: any) => ({ id: `itunes:${a.collectionId}`, title: a.collectionName ?? "", artist: a.artistName ?? "", art: String(a.artworkUrl100 ?? "").replace(/\d+x\d+bb/, "600x600bb"), year: String(a.releaseDate ?? "").slice(0, 4) });
+const appleArtist = (a: any) => ({ id: `itunes:${a.artistId}`, name: a.artistName ?? "", art: "" });
+async function youtube(path: string, params: Record<string, string>): Promise<any> {
+  const key = process.env["UDC_QAISIFY_YOUTUBE_API_KEY"], gatewayKey = process.env["LOVABLE_API_KEY"];
+  if (!key || !gatewayKey) throw new Error("Connect YouTube to restore song playback");
+  const r = await fetch(`https://connector-gateway.lovable.dev/udc_qaisify_youtube/${path}?${new URLSearchParams(params)}`, {
+    headers: { Authorization: `Bearer ${gatewayKey}`, "X-Connection-Api-Key": key }, signal: AbortSignal.timeout(8000),
+  });
+  if (!r.ok) { const body = await r.text(); console.error(`YouTube lookup [${r.status}]: ${body}`); throw new Error(`YouTube lookup unavailable (${r.status})`); }
+  return r.json();
+}
+const youtubeCache = new Map<string, { at: number; ids: string[] }>();
 
 async function authed(request: Request, url: URL) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || url.searchParams.get("token") || "";
@@ -64,7 +89,8 @@ async function resolveAudio(server: string, w: Want, preview: string): Promise<s
   const q = `${w.artist} ${w.title}`;
   if (server === "deezer") return /^https:\/\/[a-z0-9-]+\.dzcdn\.net\//i.test(preview) ? preview : null;
   if (server === "saavn") {
-    const d: any = await fetch(`${SAAVN}/api/search/songs?query=${encodeURIComponent(q)}&limit=20`, { signal: AbortSignal.timeout(6000) }).then((x) => x.json()).catch(() => ({}));
+    const saavn = (process.env["SAAVN_API"] ?? "https://saavn.sumit.co").replace(/\/+$/, "");
+    const d: any = await fetch(`${saavn}/api/search/songs?query=${encodeURIComponent(q)}&limit=20`, { signal: AbortSignal.timeout(6000) }).then((x) => x.json()).catch(() => ({}));
     const ranked = (d.data?.results ?? []).map((x: any) => ({ x, s: matchScore(unesc(x.name ?? ""), (x.artists?.primary ?? []).map((a: any) => a.name).join(", "), Number(x.duration ?? 0), w) })).sort((a: any, b: any) => b.s - a.s);
     const t = ranked[0]?.s >= 10 ? ranked[0].x : null;
     const dl: any[] = t?.downloadUrl ?? [];
@@ -104,7 +130,6 @@ async function resolveAudio(server: string, w: Want, preview: string): Promise<s
   }
   return null;
 }
-const SAAVN = (process.env["SAAVN_API"] ?? "https://saavn.sumit.co").replace(/\/+$/, "");
 const unesc = (x: string) => x.replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&#039;/g, "'");
 const within = <T,>(p: Promise<T>, ms: number) => Promise.race([p, new Promise<null>((r) => setTimeout(() => r(null), ms))]);
 /** Asks every full-length ad-free source at once and returns the first real match, so one slow source never stalls playback. */
@@ -168,6 +193,15 @@ async function handle({ request }: { request: Request }) {
   const q = encodeURIComponent((url.searchParams.get("q") ?? "").slice(0, 200));
 
   switch (url.searchParams.get("op")) {
+    case "qaisify-home": {
+      const results = await Promise.all(QAISIFY_ROWS.map(async row => ({ ...row, tracks: (await appleSearch(row.term).catch(() => ({ results: [] }))).results.filter((x: any) => x.kind === "song").map(qaisifyTrack) })));
+      return json({ rows: results }, 300);
+    }
+    case "qaisify-search": {
+      const raw = (url.searchParams.get("q") ?? "").slice(0, 200);
+      const [songs, albums, artists] = await Promise.all([appleSearch(raw, "song", 30), appleSearch(raw, "album", 12), appleSearch(raw, "musicArtist", 8)]);
+      return json({ tracks: songs.results.filter((x: any) => x.kind === "song").map(qaisifyTrack), albums: albums.results.map(appleAlbum), artists: artists.results.map(appleArtist) });
+    }
     case "home": {
       const d = await dz("/chart/0?limit=30");
       return json({
@@ -189,12 +223,16 @@ async function handle({ request }: { request: Request }) {
       catch { return json({ url: null, down: true }, 0); }
     }
     case "album": {
+      const apple = /^itunes:(\d{1,15})$/.exec(url.searchParams.get("id") ?? "");
+      if (apple) { const d = await itunes(`/lookup?id=${apple[1]}&entity=song&country=us`); const a = d.results.find((x: any) => x.wrapperType === "collection"); return json({ ...appleAlbum(a ?? {}), tracks: d.results.filter((x: any) => x.kind === "song").map(qaisifyTrack) }); }
       const i = id(url.searchParams.get("id"));
       if (!i) return new Response("Bad id", { status: 400 });
       const a = await dz(`/album/${i}`);
       return json({ ...albumOf(a), tracks: (a.tracks?.data ?? []).map((t: any) => track(t, a)) }, 3600);
     }
     case "artist": {
+      const apple = /^itunes:(\d{1,15})$/.exec(url.searchParams.get("id") ?? "");
+      if (apple) { const [songs, albums] = await Promise.all([itunes(`/lookup?id=${apple[1]}&entity=song&limit=25&country=us`), itunes(`/lookup?id=${apple[1]}&entity=album&limit=25&country=us`)]); return json({ ...appleArtist(songs.results[0] ?? {}), tracks: songs.results.filter((x: any) => x.kind === "song").map(qaisifyTrack), albums: albums.results.filter((x: any) => x.wrapperType === "collection").map(appleAlbum) }); }
       const i = id(url.searchParams.get("id"));
       if (!i) return new Response("Bad id", { status: 400 });
       const [a, top, albums] = await Promise.all([dz(`/artist/${i}`), dz(`/artist/${i}/top?limit=20`), dz(`/artist/${i}/albums?limit=40`)]);
@@ -284,16 +322,24 @@ async function handle({ request }: { request: Request }) {
       return new Response(r.body, { status: r.status, headers: { "content-type": r.headers.get("content-type") ?? "audio/mpeg", "content-disposition": `attachment; filename="${fname}.mp3"`, "cache-control": "private, no-store" } });
     }
     case "video": {
-      const r = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&maxResults=8&videoEmbeddable=true&q=${q}&key=${YT_KEY}`);
-      if (!r.ok) return json({ ids: [], error: `YouTube ${r.status}` }, 0);
-      const d: any = await r.json();
+      const query = (url.searchParams.get("q") ?? "").slice(0, 200);
+      const cached = youtubeCache.get(query);
+      if (cached && Date.now() - cached.at < 300_000) return json({ ids: cached.ids });
+      try {
+      const d = await youtube("search", { part: "snippet", type: "video", videoCategoryId: "10", maxResults: "15", videoEmbeddable: "true", videoSyndicated: "true", q: query });
       const want: Want = { title: url.searchParams.get("title") ?? "", artist: url.searchParams.get("artist") ?? "", duration: 0 };
       const items = (d.items ?? []).filter((i: any) => typeof i?.id?.videoId === "string" && /^[\w-]{11}$/.test(i.id.videoId));
       const ranked = want.title
-        ? items.map((i: any, n: number) => ({ i, s: matchScore(i.snippet?.title ?? "", i.snippet?.channelTitle ?? "", 0, want) + (/official (audio|video)|topic$/i.test(`${i.snippet?.title} ${i.snippet?.channelTitle}`) ? 3 : 0) - n * 0.3 })).sort((a: any, b: any) => b.s - a.s).map((x: any) => x.i)
+        ? items.map((i: any, n: number) => ({ i, s: matchScore(i.snippet?.title ?? "", i.snippet?.channelTitle ?? "", 0, want) + (/official (audio|video)|topic$/i.test(`${i.snippet?.title} ${i.snippet?.channelTitle}`) ? 3 : 0) - n * 0.3 })).filter((x: any) => x.s >= 5).sort((a: any, b: any) => b.s - a.s).map((x: any) => x.i)
         : items;
-      const ids = ranked.map((i: any) => i.id.videoId);
-      return json({ ids }, 86400);
+      const rawIds = ranked.map((i: any) => i.id.videoId).slice(0, 10);
+      if (!rawIds.length) return json({ ids: [] }, 0);
+      const verified = await youtube("videos", { part: "status,contentDetails", id: rawIds.join(",") });
+      const ids = playableVideoIds(rawIds, verified.items ?? []);
+      if (ids.length) youtubeCache.set(query, { at: Date.now(), ids });
+      if (youtubeCache.size > 200) { const first = youtubeCache.keys().next().value; if (first) youtubeCache.delete(first); }
+      return json({ ids }, 300);
+      } catch (e) { return json({ ids: [], error: e instanceof Error ? e.message : "YouTube unavailable" }, 0); }
     }
   }
   return new Response("Unknown op", { status: 400 });
