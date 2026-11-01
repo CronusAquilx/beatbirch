@@ -201,7 +201,8 @@ export function MusicView() {
             <div className="min-w-0 flex-1">
               <button onClick={() => play(list, i)} className={cn("block max-w-full truncate text-left text-sm font-medium", on && "text-primary")}>{t.title}</button>
               <div className="truncate text-xs text-muted-foreground">
-                <button onClick={() => openArtist(t.artistId)} className="hover:underline">{t.artist}</button>
+                <span className="mr-1.5 rounded border px-1 py-px text-[10px] uppercase tracking-wide">{t.source === "piped" ? "Piped" : "Deezer"}</span>
+                {t.artistId ? <button onClick={() => openArtist(t.artistId)} className="hover:underline">{t.artist}</button> : <span>{t.artist}</span>}
                 {t.album && <> · <button onClick={() => openAlbum(t.albumId)} className="hover:underline">{t.album}</button></>}
               </div>
             </div>

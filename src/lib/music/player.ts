@@ -7,9 +7,10 @@ import type { Prefs } from "@/lib/astra/prefs";
  * App-wide music player. The audio element and YouTube frame live outside any page,
  * so music keeps playing while you move between tabs (Web, Movies, Chat…).
  */
-export type Track = { id: string; title: string; artist: string; artistId: string; album: string; albumId: string; art: string; duration: number; preview?: string };
+export type Track = { id: string; title: string; artist: string; artistId: string; album: string; albumId: string; art: string; duration: number; preview?: string; source?: "piped" };
 
 export const SERVERS = [
+  { id: "piped", name: "Piped (no ads)" },
   { id: "soundcloud", name: "SoundCloud (no ads)" },
   { id: "youtube", name: "YouTube (may have ads)" },
   { id: "audius", name: "Audius" },
@@ -18,7 +19,7 @@ export const SERVERS = [
 export type Server = (typeof SERVERS)[number]["id"];
 
 type State = { queue: Track[]; cur: number; status: string; paused: boolean; time: number; dur: number; server: Server; mode: "audio" | "video" | null; volume: number };
-let state: State = { queue: [], cur: -1, status: "", paused: true, time: 0, dur: 0, server: "soundcloud", mode: null, volume: 1 };
+let state: State = { queue: [], cur: -1, status: "", paused: true, time: 0, dur: 0, server: "piped", mode: null, volume: 1 };
 const subs = new Set<() => void>();
 const set = (p: Partial<State>) => { state = { ...state, ...p }; subs.forEach((f) => f()); };
 
@@ -32,7 +33,7 @@ export async function musicToken() {
   token = data.session?.access_token ?? "guest";
   return token;
 }
-export const artUrl = (src: string) => (src && token ? `/api/music?op=art&src=${encodeURIComponent(src)}&token=${encodeURIComponent(token)}` : "");
+export const artUrl = (src: string) => (src && !/^https:\/\/([a-z0-9-]+\.)*(dzcdn\.net|deezer\.com|mzstatic\.com)\//i.test(src) ? src : src && token ? `/api/music?op=art&src=${encodeURIComponent(src)}&token=${encodeURIComponent(token)}` : "");
 
 export async function musicApi<T>(params: Record<string, string>): Promise<T> {
   if (!(await musicToken())) throw new Error("Please sign in again");
@@ -64,10 +65,10 @@ function ensure() {
     Object.assign(frame.style, { position: "fixed", width: "1px", height: "1px", bottom: "0", right: "0", opacity: "0", pointerEvents: "none", border: "0" });
     document.body.appendChild(frame);
   }
-  try { const s = localStorage.getItem("bb-music-server2"); if (s && SERVERS.some((x) => x.id === s)) state.server = s as Server; } catch { /* ignore */ }
+  try { const s = localStorage.getItem("bb-music-server3"); if (s && SERVERS.some((x) => x.id === s)) state.server = s as Server; } catch { /* ignore */ }
 }
 
-export function setServer(s: Server) { localStorage.setItem("bb-music-server2", s); set({ server: s }); }
+export function setServer(s: Server) { localStorage.setItem("bb-music-server3", s); set({ server: s }); }
 export function setVolume(v: number) { ensure(); if (audio) audio.volume = v; set({ volume: v }); }
 
 let prefsRef: Prefs | null = null;
@@ -83,8 +84,21 @@ export async function playList(list: Track[], i: number) {
   frame.src = "about:blank";
   await musicToken();
   // Ad-free audio sources first; YouTube (ads) only as a last resort unless picked.
-  const rest = (["soundcloud", "audius", "youtube", "deezer"] as Server[]).filter((x) => x !== state.server);
+  const rest = (["piped", "soundcloud", "audius", "youtube", "deezer"] as Server[]).filter((x) => x !== state.server);
   const order = [state.server, ...rest];
+  if (t.id.startsWith("piped:")) {
+    try {
+      const r = await musicApi<{ url: string | null; down?: boolean }>({ op: "piped-stream", id: t.id.slice(6) });
+      if (my !== playId) return;
+      if (r.url) {
+        audio.src = `/api/music?op=audio&u=${encodeURIComponent(r.url)}&token=${encodeURIComponent(token)}`;
+        await audio.play();
+        set({ mode: "audio", status: "" });
+        return;
+      }
+      if (r.down) set({ status: "Piped servers are down — trying other sources…" });
+    } catch { /* fall back to the other sources */ }
+  }
   for (const sv of order) {
     if (my !== playId) return;
     try {
