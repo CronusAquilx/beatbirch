@@ -1,9 +1,9 @@
 # Birchbeat import roadmap
 
 ## Current request — old Qaisify music app
-- [ ] Reconnect Qaisify YouTube after the workspace move; ignore previous workspace connections.
-- [ ] Inspect supplied source and integrate its catalog, playback approach and interface into shared Music.
-- [ ] Preserve Birch playlists, guest behavior and cross-layout playback; run focused tests.
+- [ ] Complete fresh Qaisify YouTube connection after workspace move — connection dialog was interrupted.
+- [x] Adapt supplied Qaisify source into shared Music: iTunes catalog, mood shelves, glass appearance and controlled YouTube playback.
+- [x] Preserve shared playlist/player interfaces and guest restrictions; four focused tests passed and preview compilation clean.
 - [ ] Verify provider playback — user performs listening checks by preference.
 
 ## Current request — console video references
