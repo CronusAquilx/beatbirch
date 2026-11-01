@@ -1,5 +1,10 @@
 # Birchbeat import roadmap
 
+## Current request — English source search
+- [ ] Add documented English/dub-capable sources without invented language flags.
+- [ ] Make English selectable even before tracks appear, automatically search sources, verify the active voice track and stop after each source is tried once.
+- [ ] Add focused detection/failover tests; actual provider playback remains user-tested.
+
 ## Current request — spoken languages
 - [x] Add shared movie audio-language choices from native/Video.js/JW Player tracks and English (Dub)/Japanese (Original) anime labels, separately from captions. Sources without accessible voice tracks show availability rather than invented choices.
 - [x] Four audio-selection/unavailable-track regression tests pass; preview compilation clean. Real provider dub availability/playback remains user-tested.

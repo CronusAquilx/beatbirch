@@ -8,14 +8,17 @@ type JWPlayer = {
   setCurrentAudioTrack: (index: number) => void;
 };
 type VideoPlayer = { audioTracks?: () => TrackList };
+type HlsPlayer = { audioTracks: { name?: string; lang?: string }[]; audioTrack: number };
 type PlayerWindow = Window & {
   jwplayer?: () => JWPlayer;
   videojs?: { getPlayers?: () => Record<string, VideoPlayer> };
+  hls?: HlsPlayer;
+  hlsPlayer?: HlsPlayer;
 };
 
 export function voiceLabel(language: string, label: string, anime: boolean): string {
   const code = language.toLowerCase().split(/[-_]/)[0];
-  if (anime && (code === 'en' || code === 'eng' || /english|\bdub\b/i.test(label))) return 'English (Dub)';
+  if (anime && (code === 'en' || code === 'eng' || /\benglish\b/i.test(label))) return 'English (Dub)';
   if (anime && (code === 'ja' || code === 'jpn' || /japanese/i.test(label))) return 'Japanese (Original)';
   if (label) return label;
   if (language) {
@@ -38,6 +41,12 @@ export function discoverVoiceTracks(root: Window | null): VoiceTrack[] {
         };
       });
       const playerWindow = win as PlayerWindow;
+      for (const hls of [playerWindow.hls, playerWindow.hlsPlayer]) {
+        if (Array.isArray(hls?.audioTracks) && hls.audioTracks.length) return hls.audioTracks.map((track, index) => ({
+          id: `${path}-hls-${index}`, label: track.name ?? '', language: track.lang ?? '', active: hls.audioTrack === index,
+          select: () => { hls.audioTrack = index; },
+        }));
+      }
       // JW Player's public audio API also supports tracks not exposed by HTMLMediaElement.
       if (typeof playerWindow.jwplayer === 'function') {
         try {
