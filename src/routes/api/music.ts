@@ -51,7 +51,8 @@ function matchScore(title: string, artist: string, dur: number, w: Want) {
   let s = 0;
   if (ct.includes(wt)) s += 5;
   else { const words = wt.split(" ").filter(Boolean); const hit = words.filter((x) => ct.includes(x)).length; s += words.length ? (hit / words.length) * 3 : 0; }
-  if (wa && (ca.includes(wa) || ct.includes(wa) || wa.includes(ca))) s += 4;
+  if (wa && ca && (ca.includes(wa) || ct.includes(wa) || wa.includes(ca))) s += 4;
+  else if (wa) return -100; // a different artist is never the original
   if (BAD.test(title) && !BAD.test(w.title)) s -= 8;
   if (/\blive\b/i.test(title) && !/\blive\b/i.test(w.title)) s -= 3;
   if (dur && w.duration) { const d = Math.abs(dur - w.duration); s += d <= 3 ? 4 : d <= 8 ? 2 : d <= 20 ? 0 : -4; }
