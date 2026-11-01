@@ -32,7 +32,7 @@ export function fromArcade(g: ArcadeGame): ConsoleGame { return { id: `arcade:${
 export const consoleCatalogOptions = queryOptions({
   queryKey: ["console-catalog"], staleTime: 60 * 60 * 1000,
   queryFn: async () => {
-    const [raw, custom] = await Promise.all([getConsoleArcade(), listDeveloperGames()]);
+    const [raw, custom] = await Promise.all([getConsoleArcade(), listDeveloperGames().catch(() => [])]);
     if (!Array.isArray(raw)) throw new Error("Arcade games couldn't load. Try again.");
     const arcade = raw.filter((g): g is ArcadeGame => !!g && typeof g.id === "number" && typeof g.name === "string" && typeof g.file === "string" && /^[A-Za-z0-9._-]+\.html?$/.test(g.file));
     const addedArcade: ArcadeGame[] = custom.filter(g => g.kind === "arcade").map((g,i) => ({ id: -i-1, name: g.name, author: "", file: `custom:${g.id}`, cover: "", url: g.url }));
