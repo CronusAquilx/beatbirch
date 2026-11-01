@@ -1,5 +1,10 @@
 # Birchbeat import roadmap
 
+## Current request — desktop polish
+- [ ] Add smooth desktop/window motion and live wallpaper choices without overriding saved preferences or reduced-motion controls.
+- [ ] Add recognizable app icons and a Microsoft-style store for existing apps.
+- [ ] Add independently saved clock font choices; verify settings, store and launch flow.
+
 ## Current request — video-referenced layouts
 - [x] Inspect five uploaded reference videos: wallpaper desktops, centered weekday/date, colorful app docks, compact system bars and floating app windows.
 - [x] Apply the references' desktop presentation to Classic/Launcher home and Windows: wallpaper, centered weekday/date/search, colorful bottom docks, compact system bar and existing Windows app windows. Preserve console layouts, saved wallpaper choices and music interface; this is a reference-inspired recreation, not a copy of those sites' private code or additional services.
