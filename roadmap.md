@@ -1,5 +1,11 @@
 # Birchbeat import roadmap
 
+## Current request — unified Windows desktop
+- [x] Consolidate Classic/Launcher into Windows with existing settings and preserve Classic wallpaper.
+- [x] Add GIF/video upload, wallpaper URL and four wallpaper choices including bundled Alpine motion (MP3 is audio, not visual wallpaper).
+- [x] Add eight widget types, title/glass/dimension customization, drag/resize, removal and position reset; eliminate rail scrollbar and center clock independently.
+- [x] Maximized windows reach viewport bottom and hide the taskbar. Browser verified at 1020×546: calculator result, title/width editing, dragging, video playback, no page errors. Signed-in storage checks remain blocked by account access noted below.
+
 ## Current request — personalization and widgets
 - [x] Add a Switch-inspired app layout to welcome and settings, preserving existing shells.
 - [x] Expose private wallpaper uploads and a custom accent picker independently for each layout.

@@ -10,8 +10,8 @@ export function WallpaperUpload({ layout }: { layout: AppearanceLayout }) {
   const { user, guest } = useAuth(); const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false); const [error, setError] = useState("");
   async function upload(file: File) {
-    setError(""); if (!/^image\/(jpeg|png|webp|gif|avif)$/.test(file.type)) { setError("Choose a JPG, PNG, WebP, GIF or AVIF image."); return; }
-    if (file.size > 10 * 1024 * 1024) { setError("Choose an image under 10 MB."); return; }
+    setError(""); if (!(/^(image\/(jpeg|png|webp|gif|avif)|video\/(mp4|webm))$/.test(file.type))) { setError("Choose an image, GIF, MP4 or WebM video. MP3 is audio, not a wallpaper."); return; }
+    if (file.size > 50 * 1024 * 1024) { setError("Choose a wallpaper under 50 MB."); return; }
     setBusy(true);
     try {
       let url: string;
@@ -24,8 +24,8 @@ export function WallpaperUpload({ layout }: { layout: AppearanceLayout }) {
         if (linkError || !data) throw linkError ?? new Error("Couldn't open the image.");
         url = data.signedUrl;
       }
-      setAppearance(layout, layout === "sony" || layout === "series" ? { consoleCustomBg: url, consoleBg: "custom", artwork: true } : { customBg: url, artwork: true });
+      setAppearance(layout, layout === "sony" || layout === "series" ? { consoleCustomBg: url, consoleBg: "custom", artwork: true } : { customBg: url, artwork: true, wallpaperType: file.type.startsWith("video/") ? "video" : "image" });
     } catch { setError("Couldn't upload the wallpaper. Please try again."); } finally { setBusy(false); }
   }
-  return <div><input ref={input} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" aria-label="Upload wallpaper image" className="hidden" disabled={busy} onChange={e => { const file = e.target.files?.[0]; if (file) void upload(file); e.target.value = ""; }}/><Button variant="secondary" disabled={busy} onClick={() => input.current?.click()}><Upload/>{busy ? "Uploading…" : "Upload wallpaper"}</Button>{guest && <p className="mt-2 text-xs text-muted-foreground">This visit only</p>}{error && <p role="alert" className="mt-2 text-xs text-destructive">{error}</p>}</div>;
+  return <div><input ref={input} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif,video/mp4,video/webm" aria-label="Upload wallpaper image" className="hidden" disabled={busy} onChange={e => { const file = e.target.files?.[0]; if (file) void upload(file); e.target.value = ""; }}/><Button variant="secondary" disabled={busy} onClick={() => input.current?.click()}><Upload/>{busy ? "Uploading…" : "Upload wallpaper"}</Button>{guest && <p className="mt-2 text-xs text-muted-foreground">This visit only</p>}{error && <p role="alert" className="mt-2 text-xs text-destructive">{error}</p>}</div>;
 }

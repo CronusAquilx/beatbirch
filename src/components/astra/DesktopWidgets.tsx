@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Rnd } from "react-rnd";
+import { GripHorizontal, Plus, Settings2, RotateCcw } from "lucide-react";
 import { CloudSun, MapPin, Music, Pause, Play, SkipBack, SkipForward, StickyNote, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +10,10 @@ import { getAppearance, setAppearance, usePrefs } from "@/lib/astra/prefs";
 import { activeLayout } from "@/lib/astra/appearance";
 import { notesKey, weatherLabel } from "@/lib/astra/desktop-widgets";
 import { artUrl, next, prev, seek, toggle, usePlayer } from "@/lib/music/player";
+import { WIDGET_NAMES, newWidget, widgetBounds, type DesktopWidget, type WidgetKind } from "@/lib/astra/widget-layout";
+import { ExtraWidget } from "./ExtraWidgets";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type Weather = { city: string; temperature: number; code: number };
 function WeatherWidget() {
@@ -49,5 +55,12 @@ function MusicWidget({ onMusic }: { onMusic: () => void }) {
 }
 export function DesktopWidgets({ onMusic }: { onMusic: () => void }) {
   const p = usePrefs(); const look = getAppearance(p); const layout = activeLayout(p);
-  return <aside className="desktop-widgets" aria-label="Desktop widgets">{(["weather", "notes", "music"] as const).filter(id => look.widgets[id]).map(id => <section key={id} className="desktop-widget" aria-label={`${id} widget`}><Button variant="ghost" size="icon" className="widget-dismiss size-6" title={`Hide ${id} widget`} aria-label={`Hide ${id} widget`} onClick={() => setAppearance(layout, { widgets: { ...look.widgets, [id]: false } })}><X className="size-3"/></Button>{id === "weather" ? <WeatherWidget/> : id === "notes" ? <NotesWidget/> : <MusicWidget onMusic={onMusic}/>}</section>)}</aside>;
+  const root = useRef<HTMLElement>(null); const [area,setArea] = useState({width:1020,height:700});
+  const [manager,setManager] = useState(false); const [editing,setEditing] = useState<string|null>(null);
+  const widgets = look.desktopWidgets ?? (["weather","notes","music"] as const).filter(k=>look.widgets[k]).map((k,i)=>newWidget(k,`initial-${k}`,i));
+  const save = (items: DesktopWidget[]) => setAppearance(layout,{desktopWidgets:items});
+  const patch = (id:string, value:Partial<DesktopWidget>) => save(widgets.map(w=>w.id===id?{...w,...value}:w));
+  const selected=widgets.find(w=>w.id===editing);
+  useEffect(()=>{const node=root.current;if(!node)return;const observer=new ResizeObserver(([e])=>{if(e)setArea({width:e.contentRect.width,height:e.contentRect.height});});observer.observe(node);return()=>observer.disconnect();},[]);
+  return <><aside ref={root} className="desktop-widget-canvas" aria-label="Desktop widgets">{widgets.map(raw=>{const w=widgetBounds(raw,area.width,area.height);return <Rnd key={w.id} bounds="parent" size={{width:w.width,height:w.height}} position={{x:w.x,y:w.y}} minWidth={Math.min(220,area.width)} minHeight={Math.min(160,area.height)} dragHandleClassName="widget-drag" cancel="button,input,textarea,a" onDragStop={(_e,d)=>patch(w.id,{x:d.x,y:d.y})} onResizeStop={(_e,_dir,ref,_delta,pos)=>patch(w.id,{width:ref.offsetWidth,height:ref.offsetHeight,x:pos.x,y:pos.y})} className="desktop-widget-position"><section className="desktop-widget-panel" data-glass={w.glass} aria-label={`${w.kind} widget`}><header className="widget-drag"><GripHorizontal className="size-4 shrink-0 text-muted-foreground"/><span className="min-w-0 flex-1 truncate text-xs font-medium">{w.title}</span><Button variant="ghost" size="icon" className="size-6" aria-label={`Customize ${w.title} widget`} title="Customize" onClick={()=>setEditing(w.id)}><Settings2 className="size-3"/></Button><Button variant="ghost" size="icon" className="size-6" title="Remove widget" aria-label={`Hide ${w.kind} widget`} onClick={()=>save(widgets.filter(i=>i.id!==w.id))}><X className="size-3"/></Button></header><div className="widget-body">{w.kind==="weather"?<WeatherWidget/>:w.kind==="notes"?<NotesWidget/>:w.kind==="music"?<MusicWidget onMusic={onMusic}/>:<ExtraWidget kind={w.kind}/>}</div></section></Rnd>;})}</aside><Button variant="secondary" size="sm" className="desktop-widget-add" aria-label="Add widgets" onClick={()=>setManager(true)}><Plus/>Widgets</Button><Dialog open={manager} onOpenChange={setManager}><DialogContent><DialogHeader><DialogTitle>Desktop widgets</DialogTitle></DialogHeader><div className="grid grid-cols-2 gap-2">{(Object.keys(WIDGET_NAMES) as WidgetKind[]).map(k=><Button key={k} variant="secondary" onClick={()=>{save([...widgets,newWidget(k,crypto.randomUUID(),widgets.length)]);setManager(false);}}><Plus/>{WIDGET_NAMES[k]}</Button>)}</div><Button variant="ghost" onClick={()=>save(widgets.map((w,i)=>({...newWidget(w.kind,w.id,i),title:w.title})))}><RotateCcw/>Reset positions</Button></DialogContent></Dialog><Dialog open={!!selected} onOpenChange={open=>{if(!open)setEditing(null);}}><DialogContent><DialogHeader><DialogTitle>Customize widget</DialogTitle></DialogHeader>{selected&&<><label className="space-y-2 text-sm">Title<Input aria-label="Widget title" value={selected.title} onChange={e=>patch(selected.id,{title:e.target.value})}/></label><div className="grid grid-cols-2 gap-3">{(["width","height"] as const).map(key=><label key={key} className="space-y-2 text-sm">{key}<Input type="number" aria-label={`Widget ${key}`} min={key==="width"?220:160} value={selected[key]} onChange={e=>patch(selected.id,{[key]:Number(e.target.value)})}/></label>)}</div><label className="flex items-center justify-between text-sm">Glass surface<Switch aria-label="Glass surface" checked={selected.glass} onCheckedChange={glass=>patch(selected.id,{glass})}/></label></>}</DialogContent></Dialog></>;
 }

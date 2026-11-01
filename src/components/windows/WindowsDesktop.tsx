@@ -13,7 +13,7 @@ import { desktopReducer, makeWindow, type DesktopApp, type DesktopWindow, type W
 import { NowPlayingBar } from "@/components/music/NowPlayingBar";
 import { RoomFollower } from "@/components/RoomFollower";
 import { cn } from "@/lib/utils";
-import wallpaper from "@/assets/windows-wallpaper.jpg";
+import wallpaper from "@/assets/launcher-wallpaper.jpg";
 import { WallpaperEffects } from "@/components/astra/WallpaperEffects";
 import { DesktopClock, DesktopStatusBar } from "@/components/astra/DesktopSurface";
 import { AppIcon } from "@/components/astra/AppIcon";
@@ -92,6 +92,7 @@ export function WindowsDesktop({ children, desktopOnly = false }: { children?: R
     if (look.reduceMotion || prefs.perfMode || prefs.device === "phone" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) { finish(); return; }
     setClosing(ids => [...ids, id]); window.setTimeout(finish, 180);
   };
+  const fullWindow = state.windows.some(w => !w.minimized && (w.mode === "maximized" || area.width < 640));
   const patch = (id: string, value: Partial<DesktopWindow>) => dispatch({ type: "patch", id, patch: value });
   const appButton = (app: typeof APPS[number], target?: string) => <Button key={app.id} variant="ghost" className="windows-app-button" onClick={() => open(app.id, target)}><span className="windows-app-icon" data-tone={app.tone}><AppIcon app={app.id}/></span><span>{app.title}</span></Button>;
   const home = <div className="windows-home"><header><span className="text-xs text-muted-foreground">BIRCHBLOCK</span><h1 className="mt-2 text-3xl font-semibold">Home</h1><p className="mt-2 text-sm text-muted-foreground">{String(name)}’s workspace</p></header><h2 className="mt-8 mb-4 text-sm font-semibold">Your apps</h2><div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{APPS.filter(a => a.id !== "home").map(a => appButton(a))}</div><div className="mt-8 flex items-center justify-between border-t pt-5"><div><p className="text-sm font-medium">Personalization</p><p className="mt-1 text-xs text-muted-foreground">Windows appearance</p></div><Button variant="ghost" onClick={() => open("settings")}><Settings/><ChevronRight/></Button></div></div>;
@@ -111,11 +112,12 @@ export function WindowsDesktop({ children, desktopOnly = false }: { children?: R
       case "route": return children;
     }
   };
-  return <div className="windows-desktop fixed inset-0 flex flex-col overflow-hidden bg-background text-foreground">
-    {look.artwork && <img src={look.customBg || wallpaper} width={1920} height={1088} alt="" className="windows-wallpaper absolute inset-0 size-full object-cover"/>}
+  return <div data-full-window={fullWindow} className="windows-desktop fixed inset-0 flex flex-col overflow-hidden bg-background text-foreground">
+    {look.artwork && look.wallpaperType !== "video" && <img src={look.customBg || wallpaper} width={1920} height={1088} alt="" className="windows-wallpaper absolute inset-0 size-full object-cover"/>}
+    {look.artwork && look.wallpaperType === "video" && look.customBg && <video key={look.customBg} src={look.customBg} muted loop playsInline autoPlay={!look.reduceMotion && !prefs.perfMode} className="windows-wallpaper absolute inset-0 size-full object-cover"/>}
     <WallpaperEffects/>
     <DesktopStatusBar onApps={() => { setStart(!start); setQuick(false); }} onSettings={() => { setQuick(!quick); setStart(false); }}/>
-    <div ref={workspace} className="relative min-h-0 flex-1" onPointerDown={e => { if (e.target === e.currentTarget) { setStart(false); setQuick(false); setTasks(false); } }}>
+    <div ref={workspace} className="windows-workspace relative min-h-0 flex-1" onPointerDown={e => { if (e.target === e.currentTarget) { setStart(false); setQuick(false); setTasks(false); } }}>
       <div className="windows-desktop-center"><DesktopClock/><Button variant="ghost" className="desktop-search windows-desktop-search" aria-label="Find an app" onClick={() => { setStart(true); setQuery(""); }}><Search/><span>Search apps</span><LayoutGrid/></Button></div>
       <div className="windows-shortcuts absolute left-3 top-4 flex flex-col gap-2">{APPS.filter(a => ["store","games","web","music","movies","settings"].includes(a.id)).map(a => <Button key={a.id} variant="ghost" className="windows-shortcut" onClick={() => open(a.id)} aria-label={`Open ${a.title}`}><span className="windows-app-icon" data-tone={a.tone}><AppIcon app={a.id}/></span><span>{a.title}</span></Button>)}</div>
       <div className="windows-brand pointer-events-none absolute bottom-6 right-7 text-right"><p className="text-sm font-semibold">BirchBlock</p><p className="mt-1 text-xs opacity-70">Windows desktop</p></div>

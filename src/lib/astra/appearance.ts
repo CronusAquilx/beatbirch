@@ -1,7 +1,9 @@
 import type { Prefs } from "./prefs";
+import type { DesktopWidget } from "./widget-layout";
 
 export const LAYOUT_NAMES = { sony: "PlayStation / PS5", series: "Xbox Series X", classic: "Classic", launcher: "Launcher", windows: "Windows", switch: "Switch" } as const;
 export type AppearanceLayout = keyof typeof LAYOUT_NAMES;
+export const VISIBLE_LAYOUTS: AppearanceLayout[] = ["windows", "switch", "sony", "series"];
 export type AppearanceProfile = Pick<Prefs, "palette" | "accent" | "fontScale" | "radius" | "density" | "background" | "reduceMotion" | "showClock" | "consoleBg" | "consoleCustomBg" | "customBg" | "customBgDim"> & {
   mode: "dark" | "light";
   tileSize: "small" | "standard" | "large";
@@ -15,6 +17,8 @@ export type AppearanceProfile = Pick<Prefs, "palette" | "accent" | "fontScale" |
   liveWallpaper: "off" | "rain" | "water";
   customAccent: string;
   widgets: { weather: boolean; notes: boolean; music: boolean };
+  desktopWidgets?: DesktopWidget[];
+  wallpaperType?: "image" | "video";
 };
 export type AppearanceProfiles = Partial<Record<AppearanceLayout, AppearanceProfile>>;
 export function activeLayout(p: Pick<Prefs, "console" | "layout">): AppearanceLayout {
