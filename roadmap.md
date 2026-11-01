@@ -2,7 +2,8 @@
 
 ## Current request — video-referenced layouts
 - [x] Inspect five uploaded reference videos: wallpaper desktops, centered weekday/date, colorful app docks, compact system bars and floating app windows.
-- [ ] Match Basic Launcher, Classic and Windows to these visual references using existing apps, while preserving console layouts and saved appearance.
+- [x] Apply the references' desktop presentation to Classic/Launcher home and Windows: wallpaper, centered weekday/date/search, colorful bottom docks, compact system bar and existing Windows app windows. Preserve console layouts, saved wallpaper choices and music interface; this is a reference-inspired recreation, not a copy of those sites' private code or additional services.
+- [x] Pass 13 appearance/preferences/window regression tests and clean preview compilation; verify all three guest home screens, Games navigation/window and 390×580 layouts with no page errors or horizontal overflow. Provider playback remains user-tested.
 
 ## Current request — account picker and guests
 - [ ] Show layout first on each document, then shared account picker and Add User form across every layout.
