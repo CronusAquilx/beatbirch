@@ -1,8 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { isDevPin } from "./account-rules";
 
 const DEV_ACCOUNTS = { qais: "qaisdev@gmail.org", chance: "chancedev@gmail.com" } as const;
-const pinOk = (code: string) => code === (process.env["ADMIN_ACCESS_CODE"] || "0307");
+const pinOk = (code: string) => isDevPin(code, process.env["ADMIN_ACCESS_CODE"]);
 const slow = () => new Promise((r) => setTimeout(r, 800)); // slows down guessing
 
 /** Checks the hidden developer panel PIN on the server. */
