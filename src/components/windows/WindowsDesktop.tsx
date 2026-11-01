@@ -3,7 +3,8 @@ import { signOutAll } from "@/lib/auth";
 import { lazy, Suspense, useEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import { Rnd } from "react-rnd";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { Bot, Brain, Film, Gamepad2, Globe, Home, LayoutGrid, Maximize2, Mic, Minus, Monitor, Music, PanelLeft, Plus, Power, Search, Settings, Square, Users, Volume2, Wifi, X, ExternalLink, ChevronRight } from "lucide-react";
+import { Bot, Brain, Film, Gamepad2, Globe, Home, LayoutGrid, Maximize2, Minimize2, Mic, Minus, Monitor, Music, PanelLeft, Plus, Power, Search, Settings, Square, Users, Volume2, Wifi, X, ExternalLink, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
@@ -55,6 +56,18 @@ export function WindowsDesktop({ children, desktopOnly = false }: { children?: R
   const [start, setStart] = useState(false); const [tasks, setTasks] = useState(false); const [quick, setQuick] = useState(false);
   const [query, setQuery] = useState(""); const [addTab, setAddTab] = useState<string | null>(null);
   const [closing, setClosing] = useState<string[]>([]);
+  const [fullscreen, setFullscreen] = useState(false);
+  useEffect(() => {
+    const sync = () => setFullscreen(!!document.fullscreenElement);
+    sync(); document.addEventListener("fullscreenchange", sync);
+    return () => document.removeEventListener("fullscreenchange", sync);
+  }, []);
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await document.documentElement.requestFullscreen();
+    } catch { toast.error("Fullscreen isn't available in this browser or preview."); }
+  };
   const [now, setNow] = useState(new Date()); const [area, setArea] = useState({ width: 1280, height: 800 });
   const workspace = useRef<HTMLDivElement>(null);
   const routeId = useRef<string | null>(null);
@@ -166,6 +179,6 @@ export function WindowsDesktop({ children, desktopOnly = false }: { children?: R
       <Button variant="ghost" size="sm" aria-label="Quick settings" title="Quick settings" onClick={() => { setQuick(!quick); setStart(false); }} className="ml-2 px-2"><Wifi/><Volume2 className="hidden sm:block"/></Button>
       {look.showClock && <div className="shrink-0 px-2 text-right text-[11px] tabular-nums"><p>{now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p><p>{now.toLocaleDateString()}</p></div>}
       <Button variant="ghost" aria-label="Show desktop" title="Show desktop" className="h-full w-2 shrink-0 rounded-none border-l p-0" onClick={() => { dispatch({ type: "show-desktop" }); setStart(false); }}/>
-    </footer><RoomFollower/>
+    </footer><Button variant="secondary" size="icon" className="fixed bottom-3 left-3 z-[320] size-9 border shadow-sm" aria-label={fullscreen ? "Exit website fullscreen" : "Enter website fullscreen"} title={fullscreen ? "Exit fullscreen" : "Fullscreen website"} onClick={() => void toggleFullscreen()}>{fullscreen ? <Minimize2/> : <Maximize2/>}</Button><RoomFollower/>
   </div>;
 }
