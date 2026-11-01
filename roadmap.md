@@ -1,8 +1,8 @@
 # Birchbeat import roadmap
 
 ## Current request — spoken languages
-- [ ] Add anime English dub and movie audio-language choices using supported playback tracks, separately from captions.
-- [ ] Test audio selection and unavailable-track behavior; provider playback remains user-tested.
+- [x] Add shared movie audio-language choices from native/Video.js/JW Player tracks and English (Dub)/Japanese (Original) anime labels, separately from captions. Sources without accessible voice tracks show availability rather than invented choices.
+- [x] Four audio-selection/unavailable-track regression tests pass; preview compilation clean. Real provider dub availability/playback remains user-tested.
 
 ## Current request — desktop polish
 - [x] Add dock magnification, window opening/closing motion and selectable Rainfall/Lake ripples; wire Classic/Launcher image motion without overriding saved choices or reduced-motion controls.
