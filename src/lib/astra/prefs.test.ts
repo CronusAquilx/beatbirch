@@ -2,6 +2,13 @@ import { describe, expect, it } from "vitest";
 import { setPrefs, setAppearance, resetPrefs } from "./prefs";
 
 describe("persisted appearance switching", () => {
+  it("never persists temporary guest wallpaper URLs", () => {
+    resetPrefs(); setPrefs({ console: "off", layout: "classic" });
+    setAppearance("classic", { customBg: "blob:http://localhost/guest-wallpaper" });
+    const saved = JSON.parse(localStorage.getItem("astra-prefs") || "{}");
+    expect(saved.appearances.classic.customBg).toBe("");
+    expect(document.documentElement.dataset["custombg"]).toBe("on");
+  });
   it("restores custom accents independently for each layout", () => {
     resetPrefs(); setPrefs({ console: "off", layout: "switch" });
     setAppearance("switch", { customAccent: "#12abcd" });
