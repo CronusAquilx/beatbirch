@@ -1,5 +1,10 @@
 # Birchbeat import roadmap
 
+## Current request — Nezha and Anikoto
+- [ ] Investigate missing English audio and Anikoto's supported dub access.
+- [ ] Repair animated-title eligibility and language retry/manual source controls without claiming unverified audio.
+- [ ] Run focused regression tests; real English playback remains unverified until a source supplies it.
+
 ## Current request — English source search
 - [x] Add documented VidSrc.cc/ICU movie sources and VidLink/ICU dedicated anime dub routes, using viewer-confirmed MAL/AniList titles. Movie sources do not guarantee English audio.
 - [x] English is selectable before tracks appear; search checks actual native/Video.js/JW/HLS audio, selects and verifies English, waits 25 seconds per source and stops after each source is tried once. School mode retains its source restriction.
