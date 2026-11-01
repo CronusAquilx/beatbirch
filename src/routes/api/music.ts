@@ -67,7 +67,7 @@ async function resolveAudio(server: string, w: Want, preview: string): Promise<s
     const t = ranked[0]?.s >= 5 ? ranked[0].x : null;
     if (!t) return null;
     const raw = await pipedStream(t.id.slice(6));
-    return raw ? `piped-audio:${raw}` : null;
+    return raw ? raw : null;
   }
   if (server === "audius") {
     const r: any = await fetch(`https://api.audius.co/v1/tracks/search?query=${encodeURIComponent(q)}&app_name=birchblock`).then((x) => x.json()).catch(() => ({}));
@@ -97,9 +97,10 @@ async function resolveAudio(server: string, w: Want, preview: string): Promise<s
 }
 /* ---------- Piped (YouTube Music via Piped instances), all calls server-side ---------- */
 const PIPED_DEFAULT = ["https://pipedapi.kavin.rocks", "https://pipedapi.adminforge.de", "https://api.piped.private.coffee", "https://pipedapi.r4fo.com"];
-const pipedInstances = () => (process.env["PIPED_INSTANCES"] ?? "").split(",").map((s) => s.trim().replace(/\/+$/, "")).filter((s) => /^https:\/\//.test(s)).concat([]).filter(Boolean).length
-  ? (process.env["PIPED_INSTANCES"] ?? "").split(",").map((s) => s.trim().replace(/\/+$/, "")).filter((s) => /^https:\/\//.test(s))
-  : PIPED_DEFAULT;
+const pipedInstances = () => {
+  const list = (process.env["PIPED_INSTANCES"] ?? "").split(",").map((x) => x.trim().replace(/\/+$/, "")).filter((x) => /^https:\/\//.test(x));
+  return list.length ? list : PIPED_DEFAULT;
+};
 let pipedDown = false;
 /** Tries each instance in order, failing over on any non-200. */
 async function piped(path: string): Promise<any> {
@@ -166,7 +167,7 @@ async function handle({ request }: { request: Request }) {
     case "piped-stream": {
       const vid = url.searchParams.get("id") ?? "";
       if (!/^[A-Za-z0-9_-]{6,20}$/.test(vid)) return new Response("Bad id", { status: 400 });
-      try { const raw = await pipedStream(vid); return json({ url: raw ? `piped-audio:${raw}` : null }, 0); }
+      try { const raw = await pipedStream(vid); return json({ url: raw ? raw : null }, 0); }
       catch { return json({ url: null, down: true }, 0); }
     }
     case "album": {
