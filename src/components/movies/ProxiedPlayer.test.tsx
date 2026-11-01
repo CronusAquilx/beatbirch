@@ -33,4 +33,21 @@ describe('preferred spoken language playback', () => {
     act(() => vi.advanceTimersByTime(VOICE_SEARCH_WAIT_MS));
     expect(result).toHaveBeenCalledTimes(1);
   });
+  it('restarts an exhausted search on the same source when Retry is requested', () => {
+    vi.useFakeTimers();
+    const result = vi.fn();
+    const { rerender } = render(<ProxiedPlayer src="https://example.com/movie/1" title="Movie" voice="en" searchAttempt={0} onVoiceResult={result} />);
+    act(() => vi.advanceTimersByTime(VOICE_SEARCH_WAIT_MS));
+    expect(result).toHaveBeenCalledTimes(1);
+    rerender(<ProxiedPlayer src="https://example.com/movie/1" title="Movie" voice="en" searchAttempt={1} onVoiceResult={result} />);
+    act(() => vi.advanceTimersByTime(VOICE_SEARCH_WAIT_MS));
+    expect(result).toHaveBeenCalledTimes(2);
+  });
+  it('does not automatically abandon a manually selected source', () => {
+    vi.useFakeTimers();
+    const result = vi.fn();
+    render(<ProxiedPlayer src="https://example.com/movie/1" title="Movie" voice="en" autoVoiceSearch={false} onVoiceResult={result} />);
+    act(() => vi.advanceTimersByTime(VOICE_SEARCH_WAIT_MS * 2));
+    expect(result).not.toHaveBeenCalled();
+  });
 });

@@ -41,4 +41,4 @@
 - App-specific navigation lives in shared views with skin-scoped native-app styling; wallpaper effects mount once per desktop/console shell and obey motion/performance preferences to preserve playback and gameplay isolation.
 - Developer-added games use a shared authenticated catalog protected by server role checks and database policies; arbitrary cloud URLs use the existing full proxy fallback, while arcade URLs reuse the inline player with proxied navigation.
 - Piped music runs through the existing /api/music server route (search, stream lookup, audio relay) with an env-configurable instance list and failover; no Edge Functions, and the browser never calls Piped directly.
-- Movie voice search verifies actual audio tracks and tries each source once; anime URLs use confirmed MAL/AniList IDs, never TMDB IDs or guessed voice flags.
+- Movie voice search verifies tracks, retries once per source and respects manual playback; all animation can confirm MAL/AniList dub entries, while Anikoto opens its real search through the proxy, not a guessed embed API.
