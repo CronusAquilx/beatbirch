@@ -1,8 +1,8 @@
 # Birchbeat import roadmap
 
 ## Current request — video-referenced layouts
-- [ ] Identify the appearance and features shown in the four supplied TikTok videos.
-- [ ] Match Basic Launcher, Classic and Windows to the references while preserving other layouts.
+- [ ] Identify the appearance and features shown in the four supplied TikTok videos — blocked by TikTok's login overlay; needs uploaded videos/screenshots or the actual website addresses.
+- [ ] Match Basic Launcher, Classic and Windows to the references while preserving other layouts — awaits clear visual references.
 
 ## Current request — account picker and guests
 - [ ] Show layout first on each document, then shared account picker and Add User form across every layout.
