@@ -1,5 +1,10 @@
 # Birchbeat import roadmap
 
+## Current request — old Qaisify music app
+- [ ] Inspect supplied source and integrate its catalog, playback approach and interface into shared Music.
+- [ ] Preserve Birch playlists, guest behavior and cross-layout playback; run focused tests.
+- [ ] Verify provider playback — user performs listening checks by preference.
+
 ## Current request — console video references
 - [x] Match uploaded PS5 and Xbox screen organization and smooth button transitions.
 - [x] Add Wii channel-grid and Neutral black-sidebar layouts with shared working library, search, media, social and settings.
