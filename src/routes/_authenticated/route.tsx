@@ -1,3 +1,4 @@
+import { AccountOnly, isAccountOnlyPath } from "@/components/astra/SignInRequired";
 import { createFileRoute, Navigate, Outlet, useLocation } from "@tanstack/react-router";
 import { useAuth, readGuest } from "@/lib/auth";
 import { AstraMark } from "@/components/astra/Mark";
@@ -24,18 +25,18 @@ function AuthedLayout() {
     );
   if (!session && !guest && !readGuest()) return <Navigate to="/auth" replace />;
   // The full-tab game player shows only the game (no sidebar or welcome prompts).
-  if (pathname === "/play" || pathname.startsWith("/console")) return <Outlet />;
-  if (prefs.layout === "windows" && prefs.console === "off") return <WindowsDesktop><Outlet/></WindowsDesktop>;
+  if (pathname === "/play" || pathname.startsWith("/console")) return isAccountOnlyPath(pathname) ? <AccountOnly><Outlet /></AccountOnly> : <Outlet />;
+  if (prefs.layout === "windows" && prefs.console === "off") return <WindowsDesktop>{isAccountOnlyPath(pathname) ? <AccountOnly><Outlet /></AccountOnly> : <Outlet />}</WindowsDesktop>;
   // In Console Mode, Music, Movies and AI open in the PS5 frame instead of the classic sidebar layout.
   if (prefs.console !== "off" && isConsoleMediaPath(pathname))
     return (
       <ConsoleAppFrame>
-        <Outlet />
+        {isAccountOnlyPath(pathname) ? <AccountOnly><Outlet /></AccountOnly> : <Outlet />}
       </ConsoleAppFrame>
     );
   return (
     <AppShell>
-      <Outlet />
+      {isAccountOnlyPath(pathname) ? <AccountOnly><Outlet /></AccountOnly> : <Outlet />}
     </AppShell>
   );
 }
