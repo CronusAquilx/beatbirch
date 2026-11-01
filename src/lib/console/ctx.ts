@@ -1,3 +1,4 @@
+import { signOutAll } from "@/lib/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { useVisit } from "./visit";
 import { useEffect, useState } from "react";
@@ -27,7 +28,7 @@ export function useConsoleCtx() {
   const go = (to: string) => navigate({ to: to as never });
   const meta = user?.user_metadata as { full_name?: string; name?: string } | undefined;
   const name = meta?.full_name ?? meta?.name ?? user?.email?.split("@")[0] ?? "Player";
-  const signOut = async () => { await queryClient.cancelQueries(); queryClient.clear(); await supabase.auth.signOut(); send("restart"); navigate({ to: "/auth", replace:true }); };
+  const signOut = async () => { await queryClient.cancelQueries(); queryClient.clear(); await signOutAll(); send("restart"); navigate({ to: "/auth", replace:true }); };
   return { go, user, lib, p, clock, catalog, name, initial: name[0]?.toUpperCase() ?? "?", signOut };
 }
 export type ConsoleCtx = ReturnType<typeof useConsoleCtx>;

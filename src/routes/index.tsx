@@ -19,7 +19,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const { session, loading } = useAuth();
+  const { session, loading, guest } = useAuth();
   const p = usePrefs();
   if (loading)
     return (
@@ -27,5 +27,5 @@ function Index() {
         <AstraMark className="size-8" pulsing />
       </div>
     );
-  return <Navigate to={session ? visitDestination(p) : "/auth"} replace />;
+  return <Navigate to={session || guest ? visitDestination(p) : "/auth"} replace />;
 }
