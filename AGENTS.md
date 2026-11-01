@@ -13,6 +13,7 @@
 - Use only verified provider-native graphics controls; FivePlay profiles live in the shared game-performance module so other providers never receive invented engine flags.
 - Gameplay's lightweight styling is temporary and must not overwrite the user's saved appearance preferences.
 - Console skins reuse isolated console routes, catalog/player and stable installed IDs; appearances stay in prefs, separate from desktop layouts.
+- Reference console screens share one skin-scoped presentation for PS5, Xbox, Wii and Neutral, composing real catalog/library actions without fabricated system telemetry.
 
 - Browser proxy transports must live inside `createClientOnlyFn` so Worker module initialization never evaluates browser WASM transport packages.
 - Opening choices and explicit account confirmation are document-scoped through VisitProvider; persisted preferences or restored auth sessions never mark a new visit complete, and standalone gameplay bypasses this flow.

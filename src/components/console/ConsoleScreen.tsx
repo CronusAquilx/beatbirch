@@ -6,12 +6,13 @@ import { SonyLibrary } from "./sony/SonyLibrary";
 import { SonySettings } from "./sony/SonySettings";
 import { SonyProfile } from "./sony/SonyProfile";
 import { XboxScreen } from "./xbox/XboxScreen";
+import { ReferenceScreen } from "./ReferenceScreen";
 
 export type ConsoleScreenName = "home" | "media" | "apps" | "store" | "library" | "settings" | "profile";
 
 export function ConsoleScreen({ screen }: { screen: ConsoleScreenName }) {
   const skin = resolveSkin(usePrefs().console);
-  if (skin === "series" && screen !== "settings" && screen !== "profile") return <XboxScreen screen={screen} />;
+  if (skin !== "classic" && screen !== "settings" && screen !== "profile") return <ReferenceScreen screen={screen} skin={skin} />;
   if (screen === "media") return <SonyHome media />;
   if (screen === "apps") return <SonyLibrary apps />;
   if (screen === "store") return <SonyStore />;
