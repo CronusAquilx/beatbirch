@@ -3,7 +3,7 @@ import { activeLayout, initialAppearance, updateAppearance, type AppearanceLayou
 
 export type Prefs = {
   appearances: AppearanceProfiles;
-  layout: "classic" | "launcher" | "windows";
+  layout: "classic" | "launcher" | "windows" | "switch";
   console: "off" | "sony" | "series" | "classic";
   consoleSetup: boolean;
   consoleBg: "landscape" | "focused" | "custom";
@@ -147,11 +147,11 @@ function apply() {
   r.dataset["wallpaperMotion"] = look.wallpaperMotion;
   r.dataset["appTransparency"] = look.appTransparency;
   r.dataset["consoleTone"] = state.palette !== "default" ? "palette" : look.mode;
-  r.dataset["consoleAccent"] = state.accent === "star" ? "native" : "custom";
+  r.dataset["consoleAccent"] = state.accent === "star" && !look.customAccent ? "native" : "custom";
   r.style.setProperty("--custom-bg-dim", `${state.customBgDim}%`);
   r.style.fontSize = `${state.fontScale}%`;
   r.style.setProperty("--radius", `${state.radius}rem`);
-  const a = ACCENTS[state.accent];
+  const a = /^#[\da-f]{6}$/i.test(look.customAccent) ? look.customAccent : ACCENTS[state.accent];
   if (a) {
     r.style.setProperty("--star", a);
     r.style.setProperty("--ring", a);
