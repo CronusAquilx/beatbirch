@@ -1,5 +1,10 @@
 # Birchbeat import roadmap
 
+## Current request — English source search
+- [x] Add documented VidSrc.cc/ICU movie sources and VidLink/ICU dedicated anime dub routes, using viewer-confirmed MAL/AniList titles. Movie sources do not guarantee English audio.
+- [x] English is selectable before tracks appear; search checks actual native/Video.js/JW/HLS audio, selects and verifies English, waits 25 seconds per source and stops after each source is tried once. School mode retains its source restriction.
+- [x] 13 focused tests pass, real One Piece title lookup and identifier mapping return correctly, preview compilation clean. Actual provider dub/audio playback remains user-tested; unexposed audio cannot be verified automatically.
+
 ## Current request — spoken languages
 - [x] Add shared movie audio-language choices from native/Video.js/JW Player tracks and English (Dub)/Japanese (Original) anime labels, separately from captions. Sources without accessible voice tracks show availability rather than invented choices.
 - [x] Four audio-selection/unavailable-track regression tests pass; preview compilation clean. Real provider dub availability/playback remains user-tested.

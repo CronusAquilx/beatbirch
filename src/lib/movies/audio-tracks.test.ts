@@ -33,4 +33,14 @@ describe('spoken audio languages', () => {
     expect(selected).toBe(1);
     expect(discoverVoiceTracks(win)[1]?.active).toBe(true);
   });
+  it('switches English voices exposed by an HLS player', () => {
+    const hls = { audioTracks: [{ name: 'Japanese', lang: 'ja' }, { name: 'English', lang: 'en' }], audioTrack: 0 };
+    const win = { document, hls } as unknown as Window;
+    discoverVoiceTracks(win)[1]?.select();
+    expect(hls.audioTrack).toBe(1);
+    expect(discoverVoiceTracks(win)[1]?.active).toBe(true);
+  });
+  it('does not label a Spanish dub as English', () => {
+    expect(voiceLabel('es', 'Spanish Dub', true)).toBe('Spanish Dub');
+  });
 });

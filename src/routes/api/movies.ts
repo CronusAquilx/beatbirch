@@ -88,6 +88,35 @@ async function handle({ request }: { request: Request }) {
   const token = url.searchParams.get("token") || "";
   const self = `${url.origin}/api/movies`;
 
+  const animeMal = url.searchParams.get('animeMal');
+  if (animeMal !== null) {
+    if (!/^[1-9]\d{0,7}$/.test(animeMal)) return Response.json({ error: 'Invalid anime ID' }, { status: 400 });
+    try {
+      const upstream = await fetch(`https://api.ani.zip/mappings?mal_id=${animeMal}`, { signal: AbortSignal.timeout(10000) });
+      if (!upstream.ok) throw new Error('Mapping unavailable');
+      const result = await upstream.json() as { mappings?: { mal_id?: number; anilist_id?: number } };
+      const match = result.mappings;
+      if (match?.mal_id !== Number(animeMal) || !Number.isSafeInteger(match.anilist_id) || Number(match.anilist_id) <= 0) return Response.json({ anilistId: null });
+      return Response.json({ anilistId: match.anilist_id }, { headers: { 'cache-control': 'public, max-age=86400' } });
+    } catch { return Response.json({ anilistId: null }); }
+  }
+
+  // Public anime metadata only: the viewer confirms the exact series/season.
+  const anime = url.searchParams.get("anime");
+  if (anime !== null) {
+    const query = anime.trim();
+    if (query.length < 2 || query.length > 160) return Response.json({ error: "Invalid anime title" }, { status: 400 });
+    try {
+      const upstream = await fetch('https://graphql.anilist.co', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, signal: AbortSignal.timeout(10000),
+        body: JSON.stringify({ query: 'query ($search: String) { Page(perPage: 8) { media(search: $search, type: ANIME) { id idMal title { romaji english } episodes } } }', variables: { search: query } }),
+      });
+      if (!upstream.ok) return Response.json({ error: "Anime lookup unavailable" }, { status: 502 });
+      const result = await upstream.json() as { data?: { Page?: { media?: { id: number; idMal: number | null; title: { romaji: string; english?: string | null }; episodes: number | null }[] } } };
+      return Response.json({ matches: (result.data?.Page?.media ?? []).filter(item => item.idMal && item.idMal > 0).map(item => ({ id: item.idMal, anilistId: item.id, title: item.title.english && item.title.english !== item.title.romaji ? `${item.title.english} · ${item.title.romaji}` : item.title.romaji, episodes: item.episodes ?? null })) }, { headers: { "cache-control": "public, max-age=300" } });
+    } catch { return Response.json({ error: "Anime lookup unavailable" }, { status: 502 }); }
+  }
+
   // --- TMDB API data ---
   const tmdbPath = url.searchParams.get("tmdb");
   if (tmdbPath) {
