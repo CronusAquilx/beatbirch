@@ -4,6 +4,7 @@ import { Download, ListMusic, Pause, Play, SkipBack, SkipForward, Volume2, X } f
 import { artUrl, downloadUrl, next, prev, seek, setPlayerPrefs, setVolume, stop, toggle, usePlayer } from "@/lib/music/player";
 import { usePrefs } from "@/lib/astra/prefs";
 import { cn } from "@/lib/utils";
+import { SERVERS } from "@/lib/music/sources";
 
 const fmt = (s: number) => (Number.isFinite(s) ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}` : "0:00");
 
@@ -24,7 +25,7 @@ export function NowPlayingBar() {
         {t.art && <img src={artUrl(t.art)} alt="" className={cn("size-11 rounded-md object-cover shadow", !p.paused && "music-spin-slow")} />}
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-medium">{t.title}</div>
-          <div className="truncate text-xs text-muted-foreground">{p.status || t.artist}{p.mode === "audio" && dur ? ` · ${fmt(p.time)} / ${fmt(dur)}` : ""}</div>
+          <div className="truncate text-xs text-muted-foreground">{p.currentSource && <span>{SERVERS.find(s => s.id === p.currentSource)?.name} · </span>}{p.status || t.artist}{p.mode === "audio" && dur ? ` · ${fmt(p.time)} / ${fmt(dur)}` : ""}</div>
         </div>
         <button onClick={prev} className="rounded-md p-2 hover:bg-accent" aria-label="Previous"><SkipBack className="size-4" /></button>
         <button onClick={toggle} className="rounded-full bg-primary p-2.5 text-primary-foreground shadow" aria-label={p.paused ? "Play" : "Pause"}>{p.paused ? <Play className="size-4" /> : <Pause className="size-4" />}</button>

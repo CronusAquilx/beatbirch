@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { allowedAudioUrl, bestAudio } from "@/lib/music/sources";
 import { authenticateRequest } from "@/lib/astra/api-user.server";
 
 /** Music relay: Deezer catalog (songs, albums, artists), artwork, lyrics and YouTube lookups load through Astra's server. */
@@ -36,7 +37,7 @@ async function soundcloudId(): Promise<string> {
   const scripts = [...html.matchAll(/https:\/\/a-v2\.sndcdn\.com\/assets\/[^"]+\.js/g)].map((m) => m[0]).reverse();
   for (const src of scripts) {
     const m = (await (await fetch(src)).text()).match(/client_id:"([A-Za-z0-9]{32})"/);
-    if (m) { scId = { id: m[1]!, at: Date.now() }; return m[1]!; }
+    if (m) { scId = { id: m[1] ?? "", at: Date.now() }; return m[1] ?? ""; }
   }
   throw new Error("SoundCloud unavailable");
 }
@@ -62,9 +63,15 @@ function matchScore(title: string, artist: string, dur: number, w: Want) {
 async function resolveAudio(server: string, w: Want, preview: string): Promise<string | null> {
   const q = `${w.artist} ${w.title}`;
   if (server === "deezer") return /^https:\/\/[a-z0-9-]+\.dzcdn\.net\//i.test(preview) ? preview : null;
-  if (server === "piped") {
+  if (server === "jiosaavn") {
+    const ranked = (await saavnSearch(q)).map((x: any) => ({ x, s: matchScore(x.title, x.artist, x.duration, w) })).sort((a, b) => b.s - a.s);
+    const candidate = ranked[0];
+    return candidate && candidate.s >= 7 ? saavnStream(candidate.x.id.slice(8)) : null;
+  }
+  if (server === "piped" || server === "youtube") {
     const ranked = (await pipedSearch(q)).map((x: any) => ({ x, s: matchScore(x.title, x.artist, x.duration, w) })).sort((a, b) => b.s - a.s);
-    const t = (ranked[0]?.s ?? 0) >= 5 ? ranked[0]!.x : null;
+    const candidate = ranked[0];
+    const t = candidate && candidate.s >= 5 ? candidate.x : null;
     if (!t) return null;
     const raw = await pipedStream(t.id.slice(6));
     return raw ? raw : null;
@@ -102,17 +109,20 @@ const pipedInstances = () => {
   return list.length ? list : PIPED_DEFAULT;
 };
 let pipedDown = false;
+const pipedCooldown = new Map<string, number>();
 /** Tries each instance in order, failing over on any non-200. */
 async function piped(path: string): Promise<any> {
   for (const base of pipedInstances()) {
-    const r = await fetch(`${base}${path}`, { headers: UA, signal: AbortSignal.timeout(8000) }).catch(() => null);
-    if (r?.ok) { const j = await r.json().catch(() => null); if (j) { pipedDown = false; return j; } }
+    if ((pipedCooldown.get(base) ?? 0) > Date.now()) continue;
+    const r = await fetch(`${base}${path}`, { headers: UA, signal: AbortSignal.timeout(4000) }).catch(() => null);
+    if (r?.ok) { const j = await r.json().catch(() => null); if (j && !j.error && (Array.isArray(j.items) || Array.isArray(j.audioStreams))) { pipedDown = false; return j; } }
+    pipedCooldown.set(base, Date.now() + (r?.status === 429 ? 60000 : 30000));
   }
   pipedDown = true;
   throw new Error("All Piped instances are down");
 }
 const pipedCache = new Map<string, { at: number; tracks: any[] }>();
-const videoIdOf = (u: string) => (u.split("=")[1] ?? "").slice(0, 20);
+const videoIdOf = (u: string) => { try { return new URL(u, "https://www.youtube.com").searchParams.get("v") ?? ""; } catch { return ""; } };
 async function pipedSearch(q: string): Promise<any[]> {
   const key = q.toLowerCase();
   const hit = pipedCache.get(key);
@@ -127,18 +137,76 @@ async function pipedSearch(q: string): Promise<any[]> {
     return [{ id: `piped:${vid}`, title: it.title ?? "", artist: String(it.uploaderName ?? "").replace(/ - Topic$/, ""), artistId: "", album: "", albumId: "", art: it.thumbnail ?? "", duration: dur > 0 ? dur : 0, source: "piped" }];
   });
   pipedCache.set(key, { at: Date.now(), tracks });
-  if (pipedCache.size > 300) pipedCache.delete(pipedCache.keys().next().value!);
+  if (pipedCache.size > 300) { const first = pipedCache.keys().next().value; if (first) pipedCache.delete(first); }
   return tracks;
 }
 /** Picks itag 140, else the highest-bitrate audio stream; returns the raw stream URL. */
 async function pipedStream(vid: string): Promise<string | null> {
   const d = await piped(`/streams/${encodeURIComponent(vid)}`);
   const streams: any[] = (d.audioStreams ?? []).filter((s: any) => typeof s.url === "string" && s.url.startsWith("https://"));
-  const best = streams.find((s) => Number(s.itag) === 140) ?? streams.sort((a, b) => (b.bitrate ?? 0) - (a.bitrate ?? 0))[0];
+  const best = bestAudio(streams) as { url?: string } | undefined;
   return best?.url ?? null;
 }
-const PIPED_AUDIO_HOST = /^https:\/\/([a-z0-9-]+\.)*(googlevideo\.com|[a-z0-9-]*piped[a-z0-9.-]*|kavin\.rocks|adminforge\.de|private\.coffee|r4fo\.com)(:\d+)?\//i;
-const AUDIO_HOST = /^https:\/\/(([a-z0-9-]+\.)*(dzcdn\.net|sndcdn\.com)\/|api\.audius\.co\/v1\/tracks\/)/i;
+const pipedAudioHosts = () => ["kavin.rocks", "adminforge.de", "private.coffee", "r4fo.com", ...pipedInstances().map(base => new URL(base).hostname)];
+const saavnCache = new Map<string, { at: number; tracks: any[] }>();
+const saavnCooldown = new Map<string, number>();
+function saavnInstances() {
+  const configured = (process.env["JIOSAAVN_INSTANCES"] ?? "").split(",").map(s => s.trim().replace(/\/+$/, "")).filter(s => /^https:\/\//.test(s));
+  return configured.length ? configured : ["https://saavn.sumit.co"];
+}
+async function saavn(path: string): Promise<any> {
+  for (const base of saavnInstances()) {
+    if ((saavnCooldown.get(base) ?? 0) > Date.now()) continue;
+    const r = await fetch(`${base}/api${path}`, { signal: AbortSignal.timeout(5000) }).catch(() => null);
+    const data = r?.ok ? await r.json().catch(() => null) : null;
+    if (data?.success && data.data) return data.data;
+    saavnCooldown.set(base, Date.now() + (r?.status === 429 ? 60000 : 15000));
+  }
+  throw new Error("JioSaavn is temporarily unavailable");
+}
+const decodeText = (value: unknown) => String(value ?? "").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+async function saavnSearch(q: string): Promise<any[]> {
+  const key = q.trim().toLowerCase();
+  const cached = saavnCache.get(key);
+  if (cached && Date.now() - cached.at < 300000) return cached.tracks;
+  const data = await saavn(`/search/songs?query=${encodeURIComponent(q)}&limit=20`);
+  const seen = new Set<string>();
+  const tracks = (data.results ?? []).flatMap((song: any) => {
+    const id = String(song.id ?? "");
+    if (!id || seen.has(id) || Number(song.duration) > 900) return [];
+    seen.add(id);
+    return [{ id: `jiosaavn:${id}`, title: decodeText(song.name), artist: decodeText((song.artists?.primary ?? []).map((a: any) => a.name).join(", ") || song.primaryArtists), duration: Number(song.duration) || 0, artistId: "", album: decodeText(song.album?.name), albumId: "", art: song.image?.at(-1)?.url ?? "", source: "jiosaavn" }];
+  });
+  saavnCache.set(key, { at: Date.now(), tracks });
+  if (saavnCache.size > 300) { const first = saavnCache.keys().next().value; if (first) saavnCache.delete(first); }
+  return tracks;
+}
+async function saavnStream(id: string): Promise<string | null> {
+  const data = await saavn(`/songs?ids=${encodeURIComponent(id)}`);
+  return (bestAudio(data[0]?.downloadUrl ?? []) as { url?: string } | undefined)?.url ?? null;
+}
+async function relayAudio(src: string, request: Request): Promise<Response> {
+  const range = request.headers.get("range");
+  let current = src;
+  for (let hop = 0; hop < 5; hop++) {
+    if (!allowedAudioUrl(current, pipedAudioHosts())) return new Response("Bad audio url", { status: 400 });
+    const r = await fetch(current, { headers: { ...UA, ...(range ? { range } : {}) }, redirect: "manual", signal: AbortSignal.timeout(15000) });
+    if ([301, 302, 303, 307, 308].includes(r.status)) {
+      const location = r.headers.get("location");
+      await r.body?.cancel();
+      if (!location) break;
+      current = new URL(location, current).href;
+      continue;
+    }
+    if (!r.ok) { await r.body?.cancel(); return new Response("Audio source unavailable", { status: 502 }); }
+    const type = r.headers.get("content-type") ?? "audio/mpeg";
+    if (/text\/|application\/(json|xml)/i.test(type)) { await r.body?.cancel(); return new Response("Invalid audio stream", { status: 502 }); }
+    const headers = new Headers({ "content-type": type, "cache-control": "private, no-store", "accept-ranges": r.headers.get("accept-ranges") ?? "bytes" });
+    for (const key of ["content-length", "content-range"]) { const value = r.headers.get(key); if (value) headers.set(key, value); }
+    return new Response(r.body, { status: r.status, headers });
+  }
+  return new Response("Audio redirect unavailable", { status: 502 });
+}
 const albumOf = (a: any) => ({ id: String(a.id), title: a.title ?? "", artist: a.artist?.name ?? "", art: a.cover_big ?? "", year: (a.release_date ?? "").slice(0, 4) });
 const artistOf = (a: any) => ({ id: String(a.id), name: a.name ?? "", art: a.picture_big ?? "", fans: a.nb_fan ?? 0 });
 const playlistOf = (p: any) => ({ id: String(p.id), title: p.title ?? "", art: p.picture_big ?? "", count: p.nb_tracks ?? 0, by: p.user?.name ?? "" });
@@ -160,8 +228,8 @@ async function handle({ request }: { request: Request }) {
     }
     case "search": {
       const raw = (url.searchParams.get("q") ?? "").slice(0, 200);
-      const [t, al, ar, pp] = await Promise.all([dz(`/search?q=${q}&limit=30`), dz(`/search/album?q=${q}&limit=20`), dz(`/search/artist?q=${q}&limit=12`), pipedSearch(raw).catch(() => [])]);
-      return json({ tracks: [...pp.slice(0, 20), ...(t.data ?? []).map((x: any) => track(x))], albums: (al.data ?? []).map(albumOf), artists: (ar.data ?? []).map(artistOf), pipedDown });
+      const [t, al, ar, pp, js] = await Promise.all([dz(`/search?q=${q}&limit=30`), dz(`/search/album?q=${q}&limit=20`), dz(`/search/artist?q=${q}&limit=12`), pipedSearch(raw).catch(() => []), saavnSearch(raw).catch(() => [])]);
+      return json({ tracks: [...js, ...pp.slice(0, 20), ...(t.data ?? []).map((x: any) => track(x))], albums: (al.data ?? []).map(albumOf), artists: (ar.data ?? []).map(artistOf), pipedDown });
     }
     case "piped-status": return json({ down: pipedDown, instances: pipedInstances().length }, 0);
     case "piped-stream": {
@@ -192,18 +260,20 @@ async function handle({ request }: { request: Request }) {
       const raw = (url.searchParams.get("q") ?? "").slice(0, 200);
       try {
         const want: Want = { title: url.searchParams.get("title") || raw, artist: url.searchParams.get("artist") ?? "", duration: Number(url.searchParams.get("duration") ?? 0) || 0 };
-        const audio = await resolveAudio(url.searchParams.get("server") ?? "", want, url.searchParams.get("preview") ?? "");
+        const server = url.searchParams.get("server") ?? "";
+        const trackId = url.searchParams.get("id") ?? "";
+        const audio = server === "youtube" && /^piped:[A-Za-z0-9_-]{6,20}$/.test(trackId)
+          ? await pipedStream(trackId.slice(6))
+          : server === "jiosaavn" && /^jiosaavn:[A-Za-z0-9_-]{1,100}$/.test(trackId)
+            ? await saavnStream(trackId.slice(8))
+            : await resolveAudio(server, want, url.searchParams.get("preview") ?? "");
         return json({ url: audio }, 0);
       } catch (e) { return json({ url: null, error: e instanceof Error ? e.message : "failed" }, 0); }
     }
     case "audio": {
       const src = url.searchParams.get("u") ?? "";
-      if (!AUDIO_HOST.test(src) && !PIPED_AUDIO_HOST.test(src)) return new Response("Bad url", { status: 400 });
-      const range = request.headers.get("range");
-      const r = await fetch(src, { headers: { ...UA, ...(range ? { range } : {}) }, redirect: "follow" });
-      const h = new Headers({ "content-type": r.headers.get("content-type") ?? "audio/mpeg", "cache-control": "private, max-age=3600", "accept-ranges": "bytes" });
-      for (const k of ["content-length", "content-range"]) { const v = r.headers.get(k); if (v) h.set(k, v); }
-      return new Response(r.body, { status: r.status, headers: h });
+      try { return await relayAudio(src, request); }
+      catch { return new Response("Audio source temporarily unavailable", { status: 502 }); }
     }
     case "genres": {
       const d = await dz("/genre");
